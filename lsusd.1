@@ -1,0 +1,82 @@
+.TH LSUSD 1 "2026-02-18" "lsusd 1.0.0" "User Commands"
+.SH NAME
+lsusd \- list USB serial devices with their associated USB metadata
+.SH SYNOPSIS
+.B lsusd
+.RB [ \-p | \-c | \-j ]
+.RB [ \-n ]
+.br
+.B lsusd
+.B \-\-version
+.SH DESCRIPTION
+.B lsusd
+discovers USB serial device nodes and displays their associated USB metadata
+(vendor, product, serial number, VID:PID) in a formatted table.
+.PP
+On macOS, discovery is performed via
+.BR ioreg (8),
+matching
+.I /dev/cu.usbmodem*
+and
+.I /dev/cu.usbserial*
+device nodes.
+.PP
+On Linux, discovery is performed via sysfs, matching
+.I /dev/ttyUSB*
+and
+.I /dev/ttyACM*
+device nodes.
+.SH OPTIONS
+.TP
+.BR \-p ", " \-\-plain
+Plain tab\-separated output without headers or box drawing.
+Suitable for consumption by
+.BR cut (1),
+.BR awk (1),
+or shell scripts.
+The columns are: device, product, vendor, serial, vidpid.
+.TP
+.BR \-c ", " \-\-csv
+CSV output with a header row.
+.TP
+.BR \-j ", " \-\-json
+JSON array output.
+.TP
+.BR \-n ", " \-\-no\-spinner
+Disable the progress spinner shown during device discovery.
+.TP
+.B \-\-version
+Print the version number and exit.
+.TP
+.BR \-h ", " \-\-help
+Show a help message and exit.
+.SH EXIT STATUS
+.TP
+.B 0
+Success (devices found or no devices found).
+.TP
+.B 1
+Unsupported platform.
+.SH EXAMPLES
+List all USB serial devices in the default table format:
+.PP
+.RS
+.B lsusd
+.RE
+.PP
+Get plain output for scripting:
+.PP
+.RS
+.B lsusd \-p | cut \-f1
+.RE
+.PP
+Export as JSON:
+.PP
+.RS
+.B lsusd \-j > devices.json
+.RE
+.SH AUTHORS
+Dr.\& Michael Lauer
+.SH SEE ALSO
+.BR ioreg (8),
+.BR system_profiler (8)
