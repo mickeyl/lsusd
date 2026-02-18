@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lsusd"
+version = "1.0.0"
+description = "List USB serial devices with their associated USB metadata"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Dr. Michael Lauer", email = "mickey@vanille-media.de" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Hardware",
+    "Topic :: Utilities",
+]
+
+[project.scripts]
+lsusd = "lsusd.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/mickeyl/lsusd"
+Repository = "https://github.com/mickeyl/lsusd"
+Issues = "https://github.com/mickeyl/lsusd/issues"
