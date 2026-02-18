@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lsusd"
-version = "1.0.0"
+version = "1.0.1"
 description = "List USB serial devices with their associated USB metadata"
 readme = "README.md"
 license = "MIT"
