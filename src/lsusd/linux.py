@@ -29,10 +29,6 @@ def discover():
         return devices
 
     for entry in sorted(tty_class.iterdir()):
-        name = entry.name
-        if not (name.startswith("ttyUSB") or name.startswith("ttyACM")):
-            continue
-
         device_link = entry / "device"
         if not device_link.exists():
             continue

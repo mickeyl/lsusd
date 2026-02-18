@@ -21,11 +21,8 @@ and
 .I /dev/cu.usbserial*
 device nodes.
 .PP
-On Linux, discovery is performed via sysfs, matching
-.I /dev/ttyUSB*
-and
-.I /dev/ttyACM*
-device nodes.
+On Linux, discovery is performed via sysfs by checking every tty device
+for a USB ancestor, so devices renamed via udev rules are also detected.
 .SH OPTIONS
 .TP
 .BR \-p ", " \-\-plain

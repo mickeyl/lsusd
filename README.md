@@ -63,7 +63,7 @@ python -m lsusd
 ## Supported Platforms
 
 - **macOS** — discovers devices via `ioreg` (`/dev/cu.usbmodem*`, `/dev/cu.usbserial*`)
-- **Linux** — discovers devices via sysfs (`/dev/ttyUSB*`, `/dev/ttyACM*`)
+- **Linux** — discovers devices via sysfs (any tty with a USB ancestor, including devices renamed via udev)
 
 ## License
 
