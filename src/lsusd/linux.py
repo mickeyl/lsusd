@@ -44,7 +44,7 @@ def discover():
         serial = _read_sysfs(usb_dir / "serial") or "?"
 
         devices.append({
-            "device": f"/dev/{name}",
+            "device": f"/dev/{entry.name}",
             "product": product,
             "vendor": vendor,
             "serial": serial,
