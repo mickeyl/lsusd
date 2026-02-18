@@ -5,13 +5,18 @@ A zero-dependency command-line tool that maps USB serial device nodes to their U
 ## Example Output
 
 ```
-┌──────────────────────────┬───────────────────────┬──────────────┬──────────────┬───────────┐
-│       Device Node        │      USB Product      │  USB Vendor  │  USB Serial  │  VID:PID  │
-├──────────────────────────┼───────────────────────┼──────────────┼──────────────┼───────────┤
-│ /dev/cu.usbmodem1124301  │ ELM327 OBD-II Adapter │ OBDII LLC    │ 00A037       │ 1FFB:2048 │
-├──────────────────────────┼───────────────────────┼──────────────┼──────────────┼───────────┤
-│ /dev/cu.usbserial-110    │ USB-Serial Controller  │ Prolific     │ ?            │ 067B:2303 │
-└──────────────────────────┴───────────────────────┴──────────────┴──────────────┴───────────┘
+❯ lsusd
+┌────────────────────────────────┬────────────────────────────┬──────────────────┬───────────────────┬───────────┐
+│          Device Node           │        USB Product         │    USB Vendor    │     USB Serial    │  VID:PID  │
+├────────────────────────────────┼────────────────────────────┼──────────────────┼───────────────────┼───────────┤
+│ /dev/cu.usbmodem2121101        │ USB JTAG/serial debug unit │ Espressif        │ D8:3B:DA:70:69:7C │ 303A:1001 │
+├────────────────────────────────┼────────────────────────────┼──────────────────┼───────────────────┼───────────┤
+│ /dev/cu.usbmodemF078E4E385A03  │ Flexbar                    │ ENIAC            │ F078E4E385A0      │ 303A:82BF │
+├────────────────────────────────┼────────────────────────────┼──────────────────┼───────────────────┼───────────┤
+│ /dev/cu.usbserial-113010893810 │ OBDLink SX                 │ ScanTool.net LLC │ 113010893810      │ 0403:6015 │
+├────────────────────────────────┼────────────────────────────┼──────────────────┼───────────────────┼───────────┤
+│ /dev/cu.usbserial-ST8XVRNW     │ ElmScan 5 Compact          │ ScanTool.net LLC │ ST8XVRNW          │ 0403:6001 │
+└────────────────────────────────┴────────────────────────────┴──────────────────┴───────────────────┴───────────┘
 ```
 
 ## Installation
@@ -44,6 +49,16 @@ lsusd
 # or
 python -m lsusd
 ```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `-p`, `--plain` | Tab-separated output, no headers — suitable for `cut`, `awk`, etc. |
+| `-c`, `--csv` | CSV output with header row |
+| `-j`, `--json` | JSON array output |
+| `-n`, `--no-spinner` | Disable the progress spinner |
+| `--version` | Print version and exit |
 
 ## Supported Platforms
 
