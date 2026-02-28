@@ -6,7 +6,9 @@ import subprocess
 
 def discover():
     """Discover USB serial devices via ioreg on macOS."""
-    raw = subprocess.run(["ioreg", "-l"], capture_output=True, text=True).stdout
+    raw = subprocess.run(["ioreg", "-l"], capture_output=True).stdout.decode(
+        "utf-8", errors="replace"
+    )
 
     current_usb = {}
     serial_devices = []
