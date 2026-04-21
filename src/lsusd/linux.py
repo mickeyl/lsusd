@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from lsusd import usb_ids
+
 
 def _read_sysfs(path):
     """Read a sysfs attribute file, returning stripped content or None."""
@@ -39,9 +41,19 @@ def discover():
 
         vid = _read_sysfs(usb_dir / "idVendor") or "0000"
         pid = _read_sysfs(usb_dir / "idProduct") or "0000"
-        product = _read_sysfs(usb_dir / "product") or "?"
-        vendor = _read_sysfs(usb_dir / "manufacturer") or "?"
+        product = _read_sysfs(usb_dir / "product")
+        vendor = _read_sysfs(usb_dir / "manufacturer")
         serial = _read_sysfs(usb_dir / "serial") or "?"
+
+        if not product or not vendor:
+            ids_vendor, ids_product = usb_ids.lookup(vid, pid)
+            if not vendor and ids_vendor:
+                vendor = ids_vendor
+            if not product and ids_product:
+                product = ids_product
+
+        product = product or "?"
+        vendor = vendor or "?"
 
         devices.append({
             "device": f"/dev/{entry.name}",
