@@ -3,9 +3,14 @@
 import argparse
 import platform
 import sys
+from datetime import datetime
 
 from lsusd import __version__
 from lsusd.spinner import Spinner
+
+WATCH_HEADERS = ["action", "device", "product", "vendor", "serial", "vidpid"]
+DEVICE_HEADERS = ["Device Node", "USB Product", "USB Vendor", "USB Serial", "VID:PID"]
+DEVICE_FIELDS = ["device", "product", "vendor", "serial", "vidpid"]
 
 
 def format_table(rows, headers):
@@ -40,6 +45,67 @@ def format_plain(devices, separator="\t"):
     return "\n".join(lines)
 
 
+def format_watch_plain(event, separator="\t"):
+    """Render one watch event as plain delimited text."""
+    return separator.join(event[field] for field in WATCH_HEADERS)
+
+
+def format_watch_line(event):
+    """Render one watch event as a compact dmesg-like line."""
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    return (
+        f"{timestamp} usb-serial {event['action']} {event['device']} "
+        f"product={event['product']!r} vendor={event['vendor']!r} "
+        f"serial={event['serial']!r} vidpid={event['vidpid']}"
+    )
+
+
+def _watch_event_summary(event):
+    """Render a compact description of the last watch event."""
+    return f"{event['action']} {event['device']} ({event['product']}, {event['vidpid']})"
+
+
+def _event_device(event):
+    """Return the device portion of a watch event."""
+    return {field: event[field] for field in DEVICE_FIELDS}
+
+
+def _update_watch_devices(devices, event):
+    """Apply a watch event to a device map keyed by device node."""
+    if event["action"] in ("present", "add"):
+        devices[event["device"]] = _event_device(event)
+    elif event["action"] == "remove":
+        devices.pop(event["device"], None)
+
+
+def _devices_by_node(devices):
+    """Return devices keyed by device node."""
+    return {device["device"]: device for device in devices}
+
+
+def format_watch_screen(devices, last_event):
+    """Render the interactive watch screen."""
+    now = datetime.now().isoformat(timespec="seconds")
+    rows = [
+        tuple(device[field] for field in DEVICE_FIELDS)
+        for device in sorted(devices.values(), key=lambda d: d["device"])
+    ]
+
+    lines = [
+        f"lsusd watch  {len(rows)} USB serial device(s)  {now}",
+        "Press Ctrl-C to stop.",
+        "",
+    ]
+    if rows:
+        lines.append(format_table(rows, DEVICE_HEADERS))
+    else:
+        lines.append("No USB serial devices connected.")
+
+    if last_event:
+        lines.extend(["", f"Last event: {_watch_event_summary(last_event)}"])
+    return "\n".join(lines)
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         prog="lsusd",
@@ -60,41 +126,23 @@ def parse_args(argv=None):
     )
     group.add_argument(
         "-j", "--json", action="store_true",
-        help="JSON output",
+        help="JSON output (newline-delimited in watch mode)",
     )
 
     parser.add_argument(
         "-n", "--no-spinner", action="store_true",
         help="disable the progress spinner",
     )
+    parser.add_argument(
+        "-w", "--watch", action="store_true",
+        help="watch USB serial devices in a live table",
+    )
 
     return parser.parse_args(argv)
 
 
-def main(argv=None):
-    args = parse_args(argv)
-
-    system = platform.system()
-    if system == "Darwin":
-        from lsusd.darwin import discover
-    elif system == "Linux":
-        from lsusd.linux import discover
-    else:
-        print(f"Unsupported platform: {system}", file=sys.stderr)
-        sys.exit(1)
-
-    use_spinner = not args.no_spinner and sys.stderr.isatty()
-
-    if use_spinner:
-        with Spinner():
-            devices = discover()
-    else:
-        devices = discover()
-
-    if not devices:
-        print("No USB serial devices found.")
-        sys.exit(0)
-
+def print_devices(devices, args):
+    """Print a one-shot device list in the selected output format."""
     if args.json:
         import json
         print(json.dumps(devices, indent=2))
@@ -110,9 +158,75 @@ def main(argv=None):
     elif args.plain:
         print(format_plain(devices))
     else:
-        headers = ["Device Node", "USB Product", "USB Vendor", "USB Serial", "VID:PID"]
-        rows = [(d["device"], d["product"], d["vendor"], d["serial"], d["vidpid"]) for d in devices]
-        print(format_table(rows, headers))
+        rows = [tuple(d[field] for field in DEVICE_FIELDS) for d in devices]
+        print(format_table(rows, DEVICE_HEADERS))
+
+
+def watch_devices(watch_changes, args):
+    """Stream USB serial add/remove events in the selected output format."""
+    use_tui = not (args.json or args.csv or args.plain) and sys.stdout.isatty()
+    csv_writer = None
+    if args.csv:
+        import csv
+        csv_writer = csv.writer(sys.stdout)
+        csv_writer.writerow(WATCH_HEADERS)
+        sys.stdout.flush()
+
+    devices = {}
+    event_source = watch_changes(initial="snapshot") if use_tui else watch_changes()
+    for event in event_source:
+        if args.json:
+            import json
+            print(json.dumps(event), flush=True)
+        elif args.csv:
+            csv_writer.writerow([event[field] for field in WATCH_HEADERS])
+            sys.stdout.flush()
+        elif args.plain:
+            print(format_watch_plain(event), flush=True)
+        else:
+            if use_tui:
+                if event["action"] == "snapshot":
+                    devices = _devices_by_node(event["devices"])
+                    event = None
+                else:
+                    _update_watch_devices(devices, event)
+                print("\033[H\033[2J" + format_watch_screen(devices, event), flush=True)
+            else:
+                print(format_watch_line(event), flush=True)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    system = platform.system()
+    if system == "Darwin":
+        from lsusd.darwin import discover, watch_changes
+    elif system == "Linux":
+        from lsusd.linux import discover, watch_changes
+    else:
+        print(f"Unsupported platform: {system}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.watch:
+        try:
+            watch_devices(watch_changes, args)
+        except KeyboardInterrupt:
+            sys.exit(130)
+        return
+
+    use_spinner = not args.no_spinner and sys.stderr.isatty()
+
+    if use_spinner:
+        with Spinner():
+            devices = discover()
+    else:
+        devices = discover()
+
+    if not devices:
+        print("No USB serial devices found.")
+        sys.exit(0)
+
+    print_devices(devices, args)
 
 
 if __name__ == "__main__":

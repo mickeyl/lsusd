@@ -56,9 +56,42 @@ python -m lsusd
 |------|-------------|
 | `-p`, `--plain` | Tab-separated output, no headers — suitable for `cut`, `awk`, etc. |
 | `-c`, `--csv` | CSV output with header row |
-| `-j`, `--json` | JSON array output |
+| `-j`, `--json` | JSON array output, or JSON Lines in watch mode |
 | `-n`, `--no-spinner` | Disable the progress spinner |
+| `-w`, `--watch` | Watch USB serial devices in a live table |
 | `--version` | Print version and exit |
+
+### Watch Mode
+
+```bash
+lsusd --watch
+lsusd --watch --plain
+lsusd --watch --json
+```
+
+`--watch` shows a live terminal table of connected USB serial devices and
+redraws it after add/remove events. The machine-readable formats still emit
+event streams: `--plain` and `--csv` use the columns `action`, `device`,
+`product`, `vendor`, `serial`, and `vidpid`; `--json` emits newline-delimited
+JSON objects. Initial devices use action `present`.
+
+```
+❯ lsusd --watch
+lsusd watch  4 USB serial device(s)  2026-05-01T14:22:09
+Press Ctrl-C to stop.
+
+┌───────────────────────────────┬────────────────────────────┬────────────┬───────────────────┬───────────┐
+│          Device Node          │        USB Product         │ USB Vendor │     USB Serial    │  VID:PID  │
+├───────────────────────────────┼────────────────────────────┼────────────┼───────────────────┼───────────┤
+│ /dev/cu.usbmodem2121101       │ USB JTAG/serial debug unit │ Espressif  │ D8:3B:DA:70:69:7C │ 303A:1001 │
+└───────────────────────────────┴────────────────────────────┴────────────┴───────────────────┴───────────┘
+```
+
+The watch implementation is push-driven, not a polling loop. On macOS, lsusd
+subscribes to IOKit `IOSerialBSDClient` first-match and termination
+notifications. On Linux, lsusd listens to kernel uevents through the netlink
+socket. After an event arrives, lsusd takes a fresh snapshot only to compute the
+added or removed device rows.
 
 ## Supported Platforms
 

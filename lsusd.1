@@ -1,10 +1,11 @@
-.TH LSUSD 1 "2026-02-18" "lsusd 1.0.2" "User Commands"
+.TH LSUSD 1 "2026-05-01" "lsusd 1.1.0" "User Commands"
 .SH NAME
 lsusd \- list USB serial devices with their associated USB metadata
 .SH SYNOPSIS
 .B lsusd
 .RB [ \-p | \-c | \-j ]
 .RB [ \-n ]
+.RB [ \-w ]
 .br
 .B lsusd
 .B \-\-version
@@ -23,6 +24,17 @@ device nodes.
 .PP
 On Linux, discovery is performed via sysfs by checking every tty device
 for a USB ancestor, so devices renamed via udev rules are also detected.
+.PP
+With
+.BR \-w " / " \-\-watch ,
+.B lsusd
+first prints currently connected USB serial devices as
+.I present
+events in a live terminal table, then waits for USB serial device changes and
+redraws the table. This mode is event-driven: on macOS it uses IOKit serial
+service notifications, and on Linux it listens to kernel uevents through the
+netlink socket. A fresh snapshot is taken only after an event arrives, in order
+to compute add/remove rows.
 .SH OPTIONS
 .TP
 .BR \-p ", " \-\-plain
@@ -41,6 +53,22 @@ JSON array output.
 .TP
 .BR \-n ", " \-\-no\-spinner
 Disable the progress spinner shown during device discovery.
+.TP
+.BR \-w ", " \-\-watch
+Show current USB serial devices in a live table, then watch changes until
+interrupted.
+With
+.BR \-j ,
+events are emitted as newline-delimited JSON objects. With
+.BR \-c ,
+the columns are: action, device, product, vendor, serial, vidpid. With
+.BR \-p ,
+the same columns are emitted as tab-separated text without a header.
+The action is
+.IR present ,
+.IR add ,
+or
+.IR remove .
 .TP
 .B \-\-version
 Print the version number and exit.
@@ -71,6 +99,12 @@ Export as JSON:
 .PP
 .RS
 .B lsusd \-j > devices.json
+.RE
+.PP
+Watch for USB serial add/remove events:
+.PP
+.RS
+.B lsusd \-\-watch
 .RE
 .SH AUTHORS
 Dr.\& Michael Lauer
