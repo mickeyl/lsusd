@@ -1,6 +1,14 @@
 # lsusd
 
-CLI tool to list USB serial devices with their associated USB metadata.
+CLI tool to list USB devices with their associated USB metadata. As of 2.0,
+`lsusd` is positioned as a zero-dependency `lsusb` successor for macOS and
+Linux:
+
+- Default command lists all non-hub USB devices.
+- `--hubs` includes USB hubs in device and tree output.
+- `--tree` renders the USB device hierarchy.
+- `--serial` preserves the original USB serial device-node view.
+- `--watch` is still USB-serial-specific.
 
 ## Releasing
 

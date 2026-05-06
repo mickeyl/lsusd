@@ -67,6 +67,130 @@ def discover():
     return devices
 
 
+def _format_bus(value):
+    """Return a USB bus number as three decimal digits."""
+    try:
+        return f"{int(value):03d}"
+    except (TypeError, ValueError):
+        return "000"
+
+
+def _format_speed(value):
+    """Return a sysfs USB speed value in lsusb-like units."""
+    if not value:
+        return "?"
+    speed = value.rstrip("0").rstrip(".")
+    return f"{speed}M"
+
+
+def _is_hub(usb_dir):
+    """Return True for USB hub device directories."""
+    return (_read_sysfs(usb_dir / "bDeviceClass") or "").lower() == "09"
+
+
+def _usb_device_row(usb_dir):
+    """Convert a sysfs USB device directory to a display row."""
+    vid = (_read_sysfs(usb_dir / "idVendor") or "0000").upper()
+    pid = (_read_sysfs(usb_dir / "idProduct") or "0000").upper()
+    product = _read_sysfs(usb_dir / "product")
+    vendor = _read_sysfs(usb_dir / "manufacturer")
+    serial = _read_sysfs(usb_dir / "serial") or "?"
+
+    if not product or not vendor:
+        ids_vendor, ids_product = usb_ids.lookup(vid, pid)
+        if not vendor and ids_vendor:
+            vendor = ids_vendor
+        if not product and ids_product:
+            product = ids_product
+
+    bus = _format_bus(_read_sysfs(usb_dir / "busnum"))
+    address = _format_bus(_read_sysfs(usb_dir / "devnum"))
+
+    return {
+        "device": f"/dev/bus/usb/{bus}/{address}",
+        "bus": bus,
+        "address": address,
+        "location": _read_sysfs(usb_dir / "devpath") or usb_dir.name,
+        "product": product or "?",
+        "vendor": vendor or "?",
+        "serial": serial,
+        "vidpid": f"{vid}:{pid}",
+        "speed": _format_speed(_read_sysfs(usb_dir / "speed")),
+        "hub": _is_hub(usb_dir),
+    }
+
+
+def discover_all(include_hubs=False):
+    """Discover all USB devices via sysfs on Linux."""
+    devices = []
+    usb_bus = Path("/sys/bus/usb/devices")
+    if not usb_bus.is_dir():
+        return devices
+
+    for usb_dir in sorted(usb_bus.iterdir()):
+        if not (usb_dir / "idVendor").is_file() or not (usb_dir / "idProduct").is_file():
+            continue
+        device = _usb_device_row(usb_dir)
+        if device["hub"] and not include_hubs:
+            continue
+        devices.append(device)
+
+    return sorted(devices, key=lambda d: (d["bus"], d["address"], d["location"]))
+
+
+def _usb_parent_name(name):
+    """Return the sysfs device name of a USB device's physical parent."""
+    if name.startswith("usb"):
+        return None
+    bus, _, port_path = name.partition("-")
+    if not port_path:
+        return None
+    if "." not in port_path:
+        return f"usb{bus}"
+    return f"{bus}-{port_path.rsplit('.', 1)[0]}"
+
+
+def _tree_from_name(name, children_by_parent, rows_by_name, include_hubs):
+    """Build visible USB tree nodes for one sysfs device name."""
+    children = []
+    for child_name in sorted(children_by_parent.get(name, [])):
+        children.extend(_tree_from_name(child_name, children_by_parent, rows_by_name, include_hubs))
+
+    device = rows_by_name[name]
+    if device["hub"] and not include_hubs:
+        return children
+
+    return [{"device": device, "children": children}]
+
+
+def discover_tree(include_hubs=False):
+    """Discover all USB devices as a visible hierarchy on Linux."""
+    usb_bus = Path("/sys/bus/usb/devices")
+    if not usb_bus.is_dir():
+        return []
+
+    rows_by_name = {}
+    children_by_parent = {}
+    roots = []
+
+    for usb_dir in sorted(usb_bus.iterdir()):
+        if not (usb_dir / "idVendor").is_file() or not (usb_dir / "idProduct").is_file():
+            continue
+        rows_by_name[usb_dir.name] = _usb_device_row(usb_dir)
+
+    for name in rows_by_name:
+        parent = _usb_parent_name(name)
+        if parent and parent in rows_by_name:
+            children_by_parent.setdefault(parent, []).append(name)
+        else:
+            roots.append(name)
+
+    tree = []
+    for name in sorted(roots):
+        tree.extend(_tree_from_name(name, children_by_parent, rows_by_name, include_hubs))
+    return tree
+
+
 def _devices_by_node(devices):
     """Return devices keyed by their stable device node."""
     return {d["device"]: d for d in devices}

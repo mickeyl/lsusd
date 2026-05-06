@@ -11,6 +11,10 @@ from lsusd.spinner import Spinner
 WATCH_HEADERS = ["action", "device", "product", "vendor", "serial", "vidpid"]
 DEVICE_HEADERS = ["Device Node", "USB Product", "USB Vendor", "USB Serial", "VID:PID"]
 DEVICE_FIELDS = ["device", "product", "vendor", "serial", "vidpid"]
+ALL_DEVICE_HEADERS = [
+    "Bus", "Device", "Location ID", "USB Product", "USB Vendor", "USB Serial", "VID:PID", "Speed",
+]
+ALL_DEVICE_FIELDS = ["bus", "address", "location", "product", "vendor", "serial", "vidpid", "speed"]
 
 
 def format_table(rows, headers):
@@ -35,13 +39,45 @@ def format_table(rows, headers):
     return "\n".join(lines)
 
 
-def format_plain(devices, separator="\t"):
+def format_plain(devices, fields=DEVICE_FIELDS, separator="\t"):
     """Render devices as plain delimited text."""
     lines = []
     for d in devices:
-        lines.append(separator.join([
-            d["device"], d["product"], d["vendor"], d["serial"], d["vidpid"],
-        ]))
+        lines.append(separator.join(d[field] for field in fields))
+    return "\n".join(lines)
+
+
+def _format_tree_label(device):
+    """Render one USB tree node."""
+    parts = [
+        f"Bus {device['bus']}",
+        f"Dev {device['address']}",
+        f"ID {device['vidpid']}",
+        device["vendor"],
+        device["product"],
+        f"speed={device['speed']}",
+        f"loc={device['location']}",
+    ]
+    if device["serial"] != "?":
+        parts.append(f"serial={device['serial']}")
+    if device.get("hub"):
+        parts.append("hub")
+    return " ".join(parts)
+
+
+def format_tree(nodes):
+    """Render USB devices as a Unicode tree."""
+    lines = []
+
+    def walk(children, prefix=""):
+        for index, node in enumerate(children):
+            last = index == len(children) - 1
+            connector = "\u2514\u2500 " if last else "\u251c\u2500 "
+            child_prefix = "   " if last else "\u2502  "
+            lines.append(prefix + connector + _format_tree_label(node["device"]))
+            walk(node["children"], prefix + child_prefix)
+
+    walk(nodes)
     return "\n".join(lines)
 
 
@@ -109,7 +145,7 @@ def format_watch_screen(devices, last_event):
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         prog="lsusd",
-        description="List USB serial devices with their associated USB metadata.",
+        description="List USB devices with their associated USB metadata.",
     )
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}",
@@ -137,29 +173,63 @@ def parse_args(argv=None):
         "-w", "--watch", action="store_true",
         help="watch USB serial devices in a live table",
     )
+    parser.add_argument(
+        "-a", "--all", action="store_true",
+        help="show all non-hub USB devices (default; kept for compatibility)",
+    )
+    parser.add_argument(
+        "--serial", action="store_true",
+        help="show only USB serial devices",
+    )
+    parser.add_argument(
+        "--hubs", action="store_true",
+        help="include USB hubs in device and tree output",
+    )
+    parser.add_argument(
+        "-t", "--tree", action="store_true",
+        help="show USB devices as a tree",
+    )
 
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.all and args.serial:
+        parser.error("--all cannot be combined with --serial")
+    if args.hubs and args.serial:
+        parser.error("--hubs cannot be combined with --serial")
+    if args.tree and args.serial:
+        parser.error("--tree cannot be combined with --serial")
+    if args.all and args.watch:
+        parser.error("--all cannot be combined with --watch")
+    if args.hubs and args.watch:
+        parser.error("--hubs cannot be combined with --watch")
+    if args.tree and args.watch:
+        parser.error("--tree cannot be combined with --watch")
+    if args.tree and (args.plain or args.csv or args.json):
+        parser.error("--tree cannot be combined with --plain, --csv, or --json")
+    return args
 
 
 def print_devices(devices, args):
     """Print a one-shot device list in the selected output format."""
+    fields = DEVICE_FIELDS if args.serial else ALL_DEVICE_FIELDS
+    headers = DEVICE_HEADERS if args.serial else ALL_DEVICE_HEADERS
+
     if args.json:
         import json
-        print(json.dumps(devices, indent=2))
+        print(json.dumps([{field: d[field] for field in fields} for d in devices], indent=2))
     elif args.csv:
         import csv
         import io
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["device", "product", "vendor", "serial", "vidpid"])
+        writer.writerow(fields)
         for d in devices:
-            writer.writerow([d["device"], d["product"], d["vendor"], d["serial"], d["vidpid"]])
+            writer.writerow([d[field] for field in fields])
         print(buf.getvalue(), end="")
     elif args.plain:
-        print(format_plain(devices))
+        print(format_plain(devices, fields))
     else:
-        rows = [tuple(d[field] for field in DEVICE_FIELDS) for d in devices]
-        print(format_table(rows, DEVICE_HEADERS))
+        rows = [tuple(d[field] for field in fields) for d in devices]
+        print(format_table(rows, headers))
 
 
 def watch_devices(watch_changes, args):
@@ -200,9 +270,9 @@ def main(argv=None):
 
     system = platform.system()
     if system == "Darwin":
-        from lsusd.darwin import discover, watch_changes
+        from lsusd.darwin import discover, discover_all, discover_tree, watch_changes
     elif system == "Linux":
-        from lsusd.linux import discover, watch_changes
+        from lsusd.linux import discover, discover_all, discover_tree, watch_changes
     else:
         print(f"Unsupported platform: {system}", file=sys.stderr)
         sys.exit(1)
@@ -218,13 +288,28 @@ def main(argv=None):
 
     if use_spinner:
         with Spinner():
-            devices = discover()
+            if args.tree:
+                devices = discover_tree(include_hubs=args.hubs)
+            elif args.serial:
+                devices = discover()
+            else:
+                devices = discover_all(include_hubs=args.hubs)
     else:
-        devices = discover()
+        if args.tree:
+            devices = discover_tree(include_hubs=args.hubs)
+        elif args.serial:
+            devices = discover()
+        else:
+            devices = discover_all(include_hubs=args.hubs)
 
     if not devices:
-        print("No USB serial devices found.")
+        noun = "USB serial devices" if args.serial else "USB devices"
+        print(f"No {noun} found.")
         sys.exit(0)
+
+    if args.tree:
+        print(format_tree(devices))
+        return
 
     print_devices(devices, args)
 

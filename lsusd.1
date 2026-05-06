@@ -1,29 +1,46 @@
-.TH LSUSD 1 "2026-05-01" "lsusd 1.1.0" "User Commands"
+.TH LSUSD 1 "2026-05-06" "lsusd 2.0.0" "User Commands"
 .SH NAME
-lsusd \- list USB serial devices with their associated USB metadata
+lsusd \- list USB devices with their associated USB metadata
 .SH SYNOPSIS
 .B lsusd
 .RB [ \-p | \-c | \-j ]
 .RB [ \-n ]
+.RB [ \-a ]
+.RB [ \-\-hubs ]
+.RB [ \-\-serial ]
+.RB [ \-t ]
 .RB [ \-w ]
 .br
 .B lsusd
 .B \-\-version
 .SH DESCRIPTION
 .B lsusd
-discovers USB serial device nodes and displays their associated USB metadata
-(vendor, product, serial number, VID:PID) in a formatted table.
+discovers USB devices and displays their associated USB metadata
+(bus, address, vendor, product, serial number, VID:PID, speed) in a formatted
+table. It is intended as a zero-dependency
+.BR lsusb (8)
+successor for macOS and Linux.
 .PP
-On macOS, discovery is performed via
+By default,
+.B lsusd
+lists all non-hub USB devices. USB hubs are hidden unless
+.BR \-\-hubs
+is supplied.
+.PP
+On macOS, USB device discovery is performed via the
+.I IOUSB
+registry plane exposed by
 .BR ioreg (8),
-matching
-.I /dev/cu.usbmodem*
-and
-.I /dev/cu.usbserial*
-device nodes.
+avoiding the stale
+.I SPUSBDataType
+system_profiler data type used by older macOS
+.B lsusb
+wrappers.
 .PP
-On Linux, discovery is performed via sysfs by checking every tty device
-for a USB ancestor, so devices renamed via udev rules are also detected.
+On Linux, USB device discovery is performed via
+.I /sys/bus/usb/devices .
+Serial mode checks every tty device for a USB ancestor, so devices renamed via
+udev rules are also detected.
 .PP
 With
 .BR \-w " / " \-\-watch ,
@@ -35,6 +52,28 @@ redraws the table. This mode is event-driven: on macOS it uses IOKit serial
 service notifications, and on Linux it listens to kernel uevents through the
 netlink socket. A fresh snapshot is taken only after an event arrives, in order
 to compute add/remove rows.
+.PP
+With
+.BR \-a " / " \-\-all ,
+.B lsusd
+uses the default USB device mode explicitly. This flag is kept for
+compatibility with scripts and cannot be combined with
+.BR \-\-serial
+or
+.BR \-w .
+.PP
+With
+.BR \-\-serial ,
+.B lsusd
+shows only USB serial device nodes and their USB metadata.
+.PP
+With
+.BR \-t " / " \-\-tree ,
+.B lsusd
+shows the USB device hierarchy. Like
+.BR \-\-all ,
+this hides hubs by default and includes them with
+.BR \-\-hubs .
 .SH OPTIONS
 .TP
 .BR \-p ", " \-\-plain
@@ -43,7 +82,7 @@ Suitable for consumption by
 .BR cut (1),
 .BR awk (1),
 or shell scripts.
-The columns are: device, product, vendor, serial, vidpid.
+The columns match the active output mode.
 .TP
 .BR \-c ", " \-\-csv
 CSV output with a header row.
@@ -53,6 +92,26 @@ JSON array output.
 .TP
 .BR \-n ", " \-\-no\-spinner
 Disable the progress spinner shown during device discovery.
+.TP
+.BR \-a ", " \-\-all
+Show all non-hub USB devices. This is the default mode; the flag is kept for
+compatibility and explicitness.
+The columns are: bus, address, location, product, vendor, serial, vidpid,
+speed.
+.TP
+.B \-\-serial
+Show only USB serial device nodes.
+The columns are: device, product, vendor, serial, vidpid.
+.TP
+.B \-\-hubs
+Include USB hubs in
+.BR \-\-all
+and
+.BR \-\-tree
+output.
+.TP
+.BR \-t ", " \-\-tree
+Show USB devices as a tree.
 .TP
 .BR \-w ", " \-\-watch
 Show current USB serial devices in a live table, then watch changes until
@@ -83,7 +142,7 @@ Success (devices found or no devices found).
 .B 1
 Unsupported platform.
 .SH EXAMPLES
-List all USB serial devices in the default table format:
+List all non-hub USB devices in the default table format:
 .PP
 .RS
 .B lsusd
@@ -101,6 +160,30 @@ Export as JSON:
 .B lsusd \-j > devices.json
 .RE
 .PP
+List all non-hub USB devices explicitly:
+.PP
+.RS
+.B lsusd \-\-all
+.RE
+.PP
+List all USB devices including hubs:
+.PP
+.RS
+.B lsusd \-\-all \-\-hubs
+.RE
+.PP
+Show the USB hierarchy:
+.PP
+.RS
+.B lsusd \-\-tree
+.RE
+.PP
+List USB serial device nodes:
+.PP
+.RS
+.B lsusd \-\-serial
+.RE
+.PP
 Watch for USB serial add/remove events:
 .PP
 .RS
@@ -110,4 +193,4 @@ Watch for USB serial add/remove events:
 Dr.\& Michael Lauer
 .SH SEE ALSO
 .BR ioreg (8),
-.BR system_profiler (8)
+.BR lsusb (8)
