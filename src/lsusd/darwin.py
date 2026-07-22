@@ -7,6 +7,7 @@ import subprocess
 import threading
 
 from lsusd import usb_ids
+from lsusd.metadata import format_bcd_device_release
 
 
 def _ioreg(*args):
@@ -134,6 +135,7 @@ def _usb_device_row(node):
         "vendor": str(vendor).strip() or "?",
         "serial": str(serial).strip() or "?",
         "vidpid": f"{vid}:{pid}",
+        "release": format_bcd_device_release(node.get("bcdDevice")),
         "speed": _speed(node.get("UsbLinkSpeed")),
         "hub": int(node.get("bDeviceClass", -1)) == 9,
     }
@@ -167,7 +169,7 @@ def _enrich_serial_devices(serial_devices):
 
         if usb_device:
             corrected = dict(device)
-            for field in ("product", "vendor", "serial", "vidpid"):
+            for field in ("product", "vendor", "serial", "vidpid", "release"):
                 corrected[field] = usb_device[field]
             enriched.append(corrected)
         else:
@@ -188,7 +190,7 @@ def discover():
             m = re.search(rf'"{key}"\s*=\s*"([^"]*)"', line)
             if m:
                 current_usb[key] = m.group(1).strip()
-        for key in ("idVendor", "idProduct"):
+        for key in ("idVendor", "idProduct", "bcdDevice"):
             m = re.search(rf'"{key}"\s*=\s*(\d+)', line)
             if m:
                 current_usb[key] = m.group(1)
@@ -203,6 +205,7 @@ def discover():
                 "vendor": current_usb.get("kUSBVendorString", "?"),
                 "serial": current_usb.get("USB Serial Number", "?"),
                 "vidpid": f"{vid:04X}:{pid:04X}" if vid else "?",
+                "release": format_bcd_device_release(current_usb.get("bcdDevice")),
             })
 
     return sorted(_enrich_serial_devices(serial_devices), key=lambda d: d["device"])

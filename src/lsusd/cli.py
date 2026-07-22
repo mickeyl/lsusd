@@ -8,13 +8,17 @@ from datetime import datetime
 from lsusd import __version__
 from lsusd.spinner import Spinner
 
-WATCH_HEADERS = ["action", "device", "product", "vendor", "serial", "vidpid"]
-DEVICE_HEADERS = ["Device Node", "USB Product", "USB Vendor", "USB Serial", "VID:PID"]
-DEVICE_FIELDS = ["device", "product", "vendor", "serial", "vidpid"]
-ALL_DEVICE_HEADERS = [
-    "Bus", "Device", "Location ID", "USB Product", "USB Vendor", "USB Serial", "VID:PID", "Speed",
+WATCH_HEADERS = ["action", "device", "product", "vendor", "serial", "vidpid", "release"]
+DEVICE_HEADERS = [
+    "Device Node", "USB Product", "USB Vendor", "USB Serial", "VID:PID", "Release",
 ]
-ALL_DEVICE_FIELDS = ["bus", "address", "location", "product", "vendor", "serial", "vidpid", "speed"]
+DEVICE_FIELDS = ["device", "product", "vendor", "serial", "vidpid", "release"]
+ALL_DEVICE_HEADERS = [
+    "Bus", "Device", "Location ID", "USB Product", "USB Vendor", "USB Serial", "VID:PID", "Release", "Speed",
+]
+ALL_DEVICE_FIELDS = [
+    "bus", "address", "location", "product", "vendor", "serial", "vidpid", "release", "speed",
+]
 
 
 def format_table(rows, headers):
@@ -55,6 +59,7 @@ def _format_tree_label(device):
         f"ID {device['vidpid']}",
         device["vendor"],
         device["product"],
+        f"release={device['release']}",
         f"speed={device['speed']}",
         f"loc={device['location']}",
     ]
@@ -92,7 +97,7 @@ def format_watch_line(event):
     return (
         f"{timestamp} usb-serial {event['action']} {event['device']} "
         f"product={event['product']!r} vendor={event['vendor']!r} "
-        f"serial={event['serial']!r} vidpid={event['vidpid']}"
+        f"serial={event['serial']!r} vidpid={event['vidpid']} release={event['release']}"
     )
 
 

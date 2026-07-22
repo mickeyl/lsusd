@@ -21,6 +21,7 @@ uninstall:
 
 check:
 	$(PYTHON) -m compileall -q src
+	PYTHONPATH=src $(PYTHON) -m unittest discover -s tests
 	PYTHONPATH=src $(PYTHON) -m lsusd --help
 
 run:

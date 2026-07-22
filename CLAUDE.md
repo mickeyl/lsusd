@@ -10,6 +10,23 @@ Linux:
 - `--serial` preserves the original USB serial device-node view.
 - `--watch` is still USB-serial-specific.
 
+## USB Device Release Metadata
+
+All discovery modes expose the standard USB `bcdDevice` descriptor as the
+`release` field. The normal table labels it `Release`; tree output uses
+`release=<value>`. Serial watch events carry the same field so table, plain,
+CSV, and JSON output stay aligned.
+
+Treat `bcdDevice` as a manufacturer-assigned device release, not as a guaranteed
+firmware or Semantic Versioning field. Preserve the conventional USB BCD
+presentation with two groups (`0x0100` becomes `1.00`, `0x0060` becomes `0.60`)
+and do not invent a major/minor/patch interpretation. macOS supplies the raw
+integer through IOKit; Linux supplies its formatted value through the sysfs
+`bcdDevice` attribute.
+
+Run `make check` after changing discovery or output contracts. It compiles the
+sources, runs the unit tests, and checks the CLI entry point.
+
 ## Releasing
 
 1. Bump `version` in `pyproject.toml`

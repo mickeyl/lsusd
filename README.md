@@ -2,8 +2,8 @@
 
 A zero-dependency `lsusb` successor for macOS and Linux. `lsusd` lists USB
 devices with their USB metadata (bus, address, vendor, product, serial number,
-VID:PID, speed), can render the physical USB tree, and still provides the
-original USB serial device view when requested.
+VID:PID, device release, speed), can render the physical USB tree, and still
+provides the original USB serial device view when requested.
 
 One practical motivation for `lsusd` is that Homebrew's macOS `lsusb` formula
 is a shell wrapper around `system_profiler SPUSBDataType`. On newer macOS
@@ -16,15 +16,15 @@ that stale `system_profiler` data type.
 
 ```
 ❯ lsusd
-┌─────┬────────┬─────────────┬────────────────────────────┬─────────────────────┬───────────────────┬───────────┬───────┐
-│ Bus │ Device │ Location ID │        USB Product         │      USB Vendor     │     USB Serial    │  VID:PID  │ Speed │
-├─────┼────────┼─────────────┼────────────────────────────┼─────────────────────┼───────────────────┼───────────┼───────┤
-│ 001 │ 003    │ 0x01210000  │ AX88179A                   │ ASIX                │ 00000000003C6D    │ 0B95:1790 │ 5G    │
-├─────┼────────┼─────────────┼────────────────────────────┼─────────────────────┼───────────────────┼───────────┼───────┤
-│ 002 │ 013    │ 0x02121100  │ USB JTAG/serial debug unit │ Espressif           │ 34:85:18:AA:B7:C8 │ 303A:1001 │ 12M   │
-├─────┼────────┼─────────────┼────────────────────────────┼─────────────────────┼───────────────────┼───────────┼───────┤
-│ 008 │ 002    │ 0x08200000  │ PSSD T7                    │ Samsung             │ S5TDNS0RB02541D   │ 04E8:4001 │ 10G   │
-└─────┴────────┴─────────────┴────────────────────────────┴─────────────────────┴───────────────────┴───────────┴───────┘
+┌─────┬────────┬─────────────┬────────────────────────────┬────────────┬───────────────────┬───────────┬─────────┬───────┐
+│ Bus │ Device │ Location ID │        USB Product         │ USB Vendor │     USB Serial    │  VID:PID  │ Release │ Speed │
+├─────┼────────┼─────────────┼────────────────────────────┼────────────┼───────────────────┼───────────┼─────────┼───────┤
+│ 001 │ 003    │ 0x01210000  │ AX88179A                   │ ASIX       │ 00000000003C6D    │ 0B95:1790 │ 2.00    │ 5G    │
+├─────┼────────┼─────────────┼────────────────────────────┼────────────┼───────────────────┼───────────┼─────────┼───────┤
+│ 002 │ 013    │ 0x02121100  │ USB JTAG/serial debug unit │ Espressif  │ 34:85:18:AA:B7:C8 │ 303A:1001 │ 1.01    │ 12M   │
+├─────┼────────┼─────────────┼────────────────────────────┼────────────┼───────────────────┼───────────┼─────────┼───────┤
+│ 008 │ 002    │ 0x08200000  │ PSSD T7                    │ Samsung    │ S5TDNS0RB02541D   │ 04E8:4001 │ 1.00    │ 10G   │
+└─────┴────────┴─────────────┴────────────────────────────┴────────────┴───────────────────┴───────────┴─────────┴───────┘
 ```
 
 ### Tree Output
@@ -121,7 +121,14 @@ lsusd --tree --hubs
 By default, `lsusd` lists all non-hub USB devices visible to the platform.
 `--all` is kept as an explicit alias for this default mode. Add `--hubs` to
 include USB hubs. The columns are `bus`, `address`, `location`, `product`,
-`vendor`, `serial`, `vidpid`, and `speed`.
+`vendor`, `serial`, `vidpid`, `release`, and `speed`.
+
+`release` is the BCD-coded `bcdDevice` value from the standard USB device
+descriptor. Manufacturers commonly use it for the device's firmware release,
+but USB defines it more generally as a manufacturer-assigned device release
+number. It uses the conventional USB two-group notation (`0x0100` becomes
+`1.00`); `lsusd` does not infer a major/minor/patch version. A device that does
+not expose the value is shown as `?`.
 
 `--tree` shows the USB device hierarchy. Like `--all`, it hides hubs by default
 and includes them with `--hubs`.
@@ -140,7 +147,7 @@ lsusd --serial --json
 
 `--serial` shows the original lsusd view: USB serial device nodes mapped to
 their USB metadata. The columns are `device`, `product`, `vendor`, `serial`,
-and `vidpid`.
+`vidpid`, and `release`.
 
 ### Watch Mode
 
@@ -153,19 +160,19 @@ lsusd --watch --json
 `--watch` shows a live terminal table of connected USB serial devices and
 redraws it after add/remove events. The machine-readable formats still emit
 event streams: `--plain` and `--csv` use the columns `action`, `device`,
-`product`, `vendor`, `serial`, and `vidpid`; `--json` emits newline-delimited
-JSON objects. Initial devices use action `present`.
+`product`, `vendor`, `serial`, `vidpid`, and `release`; `--json` emits
+newline-delimited JSON objects. Initial devices use action `present`.
 
 ```
 ❯ lsusd --watch
 lsusd watch  4 USB serial device(s)  2026-05-01T14:22:09
 Press Ctrl-C to stop.
 
-┌───────────────────────────────┬────────────────────────────┬────────────┬───────────────────┬───────────┐
-│          Device Node          │        USB Product         │ USB Vendor │     USB Serial    │  VID:PID  │
-├───────────────────────────────┼────────────────────────────┼────────────┼───────────────────┼───────────┤
-│ /dev/cu.usbmodem2121101       │ USB JTAG/serial debug unit │ Espressif  │ D8:3B:DA:70:69:7C │ 303A:1001 │
-└───────────────────────────────┴────────────────────────────┴────────────┴───────────────────┴───────────┘
+┌─────────────────────────┬────────────────────────────┬────────────┬───────────────────┬───────────┬─────────┐
+│       Device Node       │        USB Product         │ USB Vendor │     USB Serial    │  VID:PID  │ Release │
+├─────────────────────────┼────────────────────────────┼────────────┼───────────────────┼───────────┼─────────┤
+│ /dev/cu.usbmodem2121101 │ USB JTAG/serial debug unit │ Espressif  │ D8:3B:DA:70:69:7C │ 303A:1001 │ 1.01    │
+└─────────────────────────┴────────────────────────────┴────────────┴───────────────────┴───────────┴─────────┘
 ```
 
 The watch implementation is push-driven, not a polling loop. On macOS, lsusd

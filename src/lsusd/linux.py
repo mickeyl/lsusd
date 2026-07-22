@@ -62,6 +62,7 @@ def discover():
             "vendor": vendor,
             "serial": serial,
             "vidpid": f"{vid.upper()}:{pid.upper()}",
+            "release": _read_sysfs(usb_dir / "bcdDevice") or "?",
         })
 
     return devices
@@ -115,6 +116,7 @@ def _usb_device_row(usb_dir):
         "vendor": vendor or "?",
         "serial": serial,
         "vidpid": f"{vid}:{pid}",
+        "release": _read_sysfs(usb_dir / "bcdDevice") or "?",
         "speed": _format_speed(_read_sysfs(usb_dir / "speed")),
         "hub": _is_hub(usb_dir),
     }

@@ -16,8 +16,8 @@ lsusd \- list USB devices with their associated USB metadata
 .SH DESCRIPTION
 .B lsusd
 discovers USB devices and displays their associated USB metadata
-(bus, address, vendor, product, serial number, VID:PID, speed) in a formatted
-table. It is intended as a zero-dependency
+(bus, address, vendor, product, serial number, VID:PID, device release, speed)
+in a formatted table. It is intended as a zero-dependency
 .BR lsusb (8)
 successor for macOS and Linux.
 .PP
@@ -97,11 +97,20 @@ Disable the progress spinner shown during device discovery.
 Show all non-hub USB devices. This is the default mode; the flag is kept for
 compatibility and explicitness.
 The columns are: bus, address, location, product, vendor, serial, vidpid,
-speed.
+release, speed.
+.PP
+The release field is the BCD-coded
+.I bcdDevice
+value from the standard USB device descriptor. Manufacturers commonly use it
+for the firmware release, but USB defines it more generally as a
+manufacturer-assigned device release number. It uses the conventional USB
+two-group notation; for example, 0x0100 is displayed as 1.00. No
+major/minor/patch interpretation is inferred. A missing value is displayed as
+.IR ? .
 .TP
 .B \-\-serial
 Show only USB serial device nodes.
-The columns are: device, product, vendor, serial, vidpid.
+The columns are: device, product, vendor, serial, vidpid, release.
 .TP
 .B \-\-hubs
 Include USB hubs in
@@ -120,7 +129,7 @@ With
 .BR \-j ,
 events are emitted as newline-delimited JSON objects. With
 .BR \-c ,
-the columns are: action, device, product, vendor, serial, vidpid. With
+the columns are: action, device, product, vendor, serial, vidpid, release. With
 .BR \-p ,
 the same columns are emitted as tab-separated text without a header.
 The action is
