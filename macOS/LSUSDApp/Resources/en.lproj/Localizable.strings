@@ -86,7 +86,7 @@
 
 /* Settings */
 "Settings_GENERAL" = "General";
-"Settings_APPEARANCE_NOTE" = "LSUSD follows the macOS appearance and uses the system typeface.";
+"Settings_CREDITS" = "(C) Dr. Michael 'Mickey' Lauer – made with love in Neu-Isenburg – [https://www.vanille.de](https://www.vanille.de)";
 "Settings_HUBS_NOTE" = "Hubs are hidden by default to keep the device list focused.";
 "Settings_SORT_BY" = "Sort devices by";
 "Settings_SORT_ALPHABETICAL" = "Alphabetically";

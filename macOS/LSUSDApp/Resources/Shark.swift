@@ -153,8 +153,8 @@ public enum R {
         /// Search USB devices
         public static var Search_PROMPT: String { return NSLocalizedString("Search_PROMPT", bundle: bundle, comment: "") }
 
-        /// LSUSD follows the macOS appearance and uses the system typeface.
-        public static var Settings_APPEARANCE_NOTE: String { return NSLocalizedString("Settings_APPEARANCE_NOTE", bundle: bundle, comment: "") }
+        /// (C) Dr. Michael 'Mickey' Lauer – made with love in Neu-Isenburg – [https://www.vanille.de](https://www.vanille.de)
+        public static var Settings_CREDITS: String { return NSLocalizedString("Settings_CREDITS", bundle: bundle, comment: "") }
 
         /// General
         public static var Settings_GENERAL: String { return NSLocalizedString("Settings_GENERAL", bundle: bundle, comment: "") }

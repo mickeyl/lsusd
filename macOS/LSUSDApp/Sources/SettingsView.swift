@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct MenuBarSettingsView: View {
@@ -27,11 +28,18 @@ struct MenuBarSettingsView: View {
 
             Spacer()
 
-            Text(R.L.Settings_APPEARANCE_NOTE)
+            Text(credits)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
         .padding(14)
+    }
+
+    private var credits: AttributedString {
+        (try? AttributedString(markdown: R.L.Settings_CREDITS))
+            ?? AttributedString(R.L.Settings_CREDITS)
     }
 }
 

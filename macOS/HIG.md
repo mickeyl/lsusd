@@ -40,6 +40,7 @@ LSUSD is a menu-bar utility with a compact status panel and one optional device 
 - Inspector width: 260-380 points.
 - Dense table and tree rows use native macOS control metrics.
 - Scrollable menu rows reserve 12 points between trailing badges and the scroll indicator.
+- Main-window search and actions belong to the detail column, not the inspector. Actions are individual toolbar items, separated into filter, refresh, and export groups, so they use the available title-bar width before macOS creates an overflow menu.
 
 ## Accessibility and localization
 
@@ -47,3 +48,4 @@ LSUSD is a menu-bar utility with a compact status panel and one optional device 
 - Dynamic device data is never used as a localization key.
 - All user-visible interface copy is available in English and German.
 - Technical exports remain locale-neutral and preserve the CLI field names and formats.
+- Settings end with a centered creator credit and a clickable link to `https://www.vanille.de`.

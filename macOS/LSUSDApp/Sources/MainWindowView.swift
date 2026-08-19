@@ -21,10 +21,10 @@ struct MainWindowView: View {
         } detail: {
             sectionContent
                 .navigationTitle(model.selectedSection.title)
+                .searchable(text: $model.searchText, prompt: R.L.Search_PROMPT)
+                .toolbar { toolbar }
         }
         .frame(minWidth: 820, minHeight: 500)
-        .searchable(text: $model.searchText, prompt: R.L.Search_PROMPT)
-        .toolbar { toolbar }
         .inspector(isPresented: inspectorPresented) {
             if let device = model.selectedDevice {
                 DeviceInspector(device: device)
@@ -60,13 +60,17 @@ struct MainWindowView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItem(placement: .automatic) {
             Toggle(isOn: showHubs) {
                 Label(R.L.Common_SHOW_HUBS, systemImage: "point.3.connected.trianglepath.dotted")
             }
             .toggleStyle(.button)
             .help(R.L.Common_SHOW_HUBS)
+        }
 
+        ToolbarSpacer(.fixed)
+
+        ToolbarItem(placement: .automatic) {
             Button {
                 Task { await model.refresh() }
             } label: {
@@ -74,8 +78,10 @@ struct MainWindowView: View {
             }
             .disabled(model.isLoading)
             .help(R.L.Common_REFRESH)
+        }
 
-            if model.selectedSection == .events {
+        if model.selectedSection == .events {
+            ToolbarItem(placement: .automatic) {
                 Button {
                     model.clearEvents()
                 } label: {
@@ -84,7 +90,11 @@ struct MainWindowView: View {
                 .disabled(model.events.isEmpty)
                 .help(R.L.Common_CLEAR)
             }
+        }
 
+        ToolbarSpacer(.fixed)
+
+        ToolbarItem(placement: .automatic) {
             Menu {
                 Section(R.L.Common_COPY) {
                     exportButtons(copy: true)

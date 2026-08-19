@@ -86,7 +86,7 @@
 
 /* Einstellungen */
 "Settings_GENERAL" = "Allgemein";
-"Settings_APPEARANCE_NOTE" = "LSUSD folgt dem Erscheinungsbild von macOS und verwendet die Systemschrift.";
+"Settings_CREDITS" = "(C) Dr. Michael 'Mickey' Lauer – made with love in Neu-Isenburg – [https://www.vanille.de](https://www.vanille.de)";
 "Settings_HUBS_NOTE" = "Hubs sind standardmäßig ausgeblendet, damit die Geräteliste übersichtlich bleibt.";
 "Settings_SORT_BY" = "Geräte sortieren nach";
 "Settings_SORT_ALPHABETICAL" = "Alphabetisch";
