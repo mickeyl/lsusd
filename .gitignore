@@ -5,3 +5,8 @@ dist/
 build/
 *.egg
 .venv/
+macOS/LSUSD.xcodeproj/
+macOS/DerivedData/
+macOS/Dist/
+macOS/Packages/LSUSDCore/.build/
+macOS/Packages/LSUSDCore/.swiftpm/

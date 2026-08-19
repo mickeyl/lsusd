@@ -1,0 +1,79 @@
+name: LSUSD
+
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "26.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targets:
+  LSUSDCore:
+    type: framework
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Packages/LSUSDCore/Sources/LSUSDCore
+    dependencies:
+      - sdk: IOKit.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.vanille.lsusd.core
+        PRODUCT_NAME: LSUSDCore
+        DEFINES_MODULE: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+        GENERATE_INFOPLIST_FILE: YES
+        CURRENT_PROJECT_VERSION: 14
+        MARKETING_VERSION: 2.1.0
+
+  LSUSD:
+    type: application
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: LSUSDApp/Sources
+      - path: LSUSDApp/Resources
+        excludes:
+          - Info.plist
+          - LSUSD.entitlements
+    dependencies:
+      - target: LSUSDCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.vanille.lsusd
+        PRODUCT_NAME: LSUSD
+        PRODUCT_MODULE_NAME: LSUSD
+        INFOPLIST_FILE: LSUSDApp/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: LSUSDApp/Resources/LSUSD.entitlements
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: NANNL9SK66
+        CURRENT_PROJECT_VERSION: 14
+        MARKETING_VERSION: 2.1.0
+        GENERATE_INFOPLIST_FILE: NO
+      configs:
+        Release:
+          ENABLE_HARDENED_RUNTIME: YES
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+    preBuildScripts:
+      - name: Generate localized resources
+        basedOnDependencyAnalysis: false
+        script: |
+          /opt/homebrew/bin/shark generate "$PROJECT_FILE_PATH" "$PROJECT_DIR/LSUSDApp/Resources/Shark.swift" --target LSUSD --framework swiftui --name R
+    postBuildScripts:
+      - name: Stamp build number
+        basedOnDependencyAnalysis: false
+        script: |
+          if BUILD_NUMBER=$(git -C "$SRCROOT/.." rev-list --count HEAD 2>/dev/null); then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          fi
+    scheme:
+      testTargets: []
+      environmentVariables:
+        OS_ACTIVITY_MODE: disabled

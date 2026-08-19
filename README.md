@@ -5,12 +5,48 @@ devices with their USB metadata (bus, address, vendor, product, serial number,
 VID:PID, device release, speed), can render the physical USB tree, and still
 provides the original USB serial device view when requested.
 
+The repository also contains **LSUSD for macOS**, a native macOS 26 menu-bar
+app that presents the CLI's discovery, topology, serial monitoring, and export
+features in a professional SwiftUI interface. The app talks to IOKit directly;
+it neither launches nor parses the Python CLI.
+
 One practical motivation for `lsusd` is that Homebrew's macOS `lsusb` formula
 is a shell wrapper around `system_profiler SPUSBDataType`. On newer macOS
 systems that data type can return no devices even when many USB devices are
 connected; the USB data is available through `ioreg` and `SPUSBHostDataType`
 instead. `lsusd` uses the IOKit registry directly, so it does not depend on
 that stale `system_profiler` data type.
+
+## Native macOS menu-bar app
+
+The app lives in [`macOS/`](macOS/README.md) and targets macOS 26 or later. Its
+menu-bar label shows the current USB and USB-serial device counts as
+`USB·serial`. IOKit first-match and termination notifications keep the label,
+the popover, and the event history current without polling.
+
+The compact popover provides switchable USB and serial device lists plus
+inline settings and quit controls. A separate device window covers the full
+CLI surface: device details, optional hubs, expandable topology, serial device
+nodes, event history, and plain-text, CSV, and JSON export.
+
+The app is deliberately independent from the CLI package. Install either or
+both products:
+
+```bash
+brew install lsusd
+brew install --cask lsusd-menubar
+```
+
+For local development, install XcodeGen and Shark, then use:
+
+```bash
+make mac-build
+make mac-test
+make mac-run
+```
+
+The interface uses the macOS system typeface and native system controls; no
+custom fonts are bundled.
 
 ## Example Output
 

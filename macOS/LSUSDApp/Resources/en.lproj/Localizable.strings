@@ -1,0 +1,96 @@
+/* App */
+"App_NAME" = "LSUSD";
+"App_DEVICES_WINDOW" = "USB Devices";
+
+/* Common actions */
+"Common_REFRESH" = "Refresh";
+"Common_OPEN_WINDOW" = "Show All Devices…";
+"Common_SETTINGS" = "Settings…";
+"Common_QUIT" = "Quit LSUSD";
+"Common_COPY" = "Copy";
+"Common_EXPORT" = "Export";
+"Common_CLEAR" = "Clear";
+"Common_SHOW_HUBS" = "Show USB hubs";
+
+/* Sidebar */
+"Sidebar_DEVICES" = "Devices";
+"Sidebar_TOPOLOGY" = "Topology";
+"Sidebar_SERIAL" = "Serial";
+"Sidebar_EVENTS" = "Events";
+
+/* Menu bar */
+"MenuBar_COUNT_ACCESSIBILITY" = "LSUSD, %@, %@";
+
+/* Status */
+"Status_DEVICE_COUNT" = "%d USB devices";
+"Status_DEVICE_COUNT_ONE" = "1 USB device";
+"Status_SERIAL_COUNT" = "%d serial devices";
+"Status_SERIAL_COUNT_ONE" = "1 serial device";
+"Status_LAST_UPDATED" = "Updated %@";
+"Status_LOADING" = "Reading USB devices…";
+"Status_NO_DEVICES" = "No USB devices";
+"Status_NO_DEVICES_DESCRIPTION" = "Connect a USB device or refresh the list.";
+"Status_NO_SERIAL" = "No USB serial devices";
+"Status_NO_SERIAL_DESCRIPTION" = "Compatible serial devices appear here automatically.";
+"Status_NO_EVENTS" = "No connection events";
+"Status_NO_EVENTS_DESCRIPTION" = "USB serial connection changes appear here.";
+
+/* Badges */
+"Badge_SERIAL_DEVICE" = "Serial device";
+
+/* Table */
+"Table_BUS" = "Bus";
+"Table_DEVICE" = "Device";
+"Table_LOCATION" = "Location ID";
+"Table_PRODUCT" = "USB Product";
+"Table_VENDOR" = "USB Vendor";
+"Table_SERIAL" = "USB Serial";
+"Table_VIDPID" = "VID:PID";
+"Table_RELEASE" = "Release";
+"Table_SPEED" = "Speed";
+
+/* Details */
+"Details_TITLE" = "Device Details";
+"Details_IDENTITY" = "Identity";
+"Details_CONNECTION" = "Connection";
+"Details_PRODUCT" = "Product";
+"Details_VENDOR" = "Vendor";
+"Details_SERIAL" = "Serial number";
+"Details_VENDOR_ID" = "Vendor ID";
+"Details_PRODUCT_ID" = "Product ID";
+"Details_RELEASE" = "Device release";
+"Details_BUS" = "Bus";
+"Details_ADDRESS" = "Address";
+"Details_LOCATION" = "Location ID";
+"Details_SPEED" = "Link speed";
+"Details_DEVICE_NODE" = "Device node";
+"Details_HUB" = "USB hub";
+"Details_YES" = "Yes";
+"Details_NO" = "No";
+
+/* Events */
+"Event_PRESENT" = "Present";
+"Event_ADD" = "Connected";
+"Event_REMOVE" = "Disconnected";
+
+/* Search and export */
+"Search_PROMPT" = "Search USB devices";
+"Export_JSON" = "Export JSON…";
+"Export_CSV" = "Export CSV…";
+"Export_TSV" = "Export tab-separated text…";
+"Export_COPY_JSON" = "Copy as JSON";
+"Export_COPY_CSV" = "Copy as CSV";
+"Export_COPY_TSV" = "Copy as tab-separated text";
+
+/* Settings */
+"Settings_GENERAL" = "General";
+"Settings_APPEARANCE_NOTE" = "LSUSD follows the macOS appearance and uses the system typeface.";
+"Settings_HUBS_NOTE" = "Hubs are hidden by default to keep the device list focused.";
+"Settings_SORT_BY" = "Sort devices by";
+"Settings_SORT_ALPHABETICAL" = "Alphabetically";
+"Settings_SORT_SPEED" = "Speed";
+"Settings_SORT_DEVICE_TYPE" = "USB device type";
+
+/* Errors */
+"Error_TITLE" = "USB data could not be read";
+"Error_DISMISS" = "Dismiss";
