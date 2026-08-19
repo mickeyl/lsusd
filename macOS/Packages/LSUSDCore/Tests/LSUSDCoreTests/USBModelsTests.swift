@@ -45,6 +45,43 @@ struct USBModelsTests {
         #expect(text.contains("add,/dev/bus/usb/001/002,Product,Vendor,SERIAL,1234:00AB,1.00"))
     }
 
+    @Test func displayCycleRetainsRemovedDevicesAndMarksAdditions() {
+        let original = sampleDevice(id: 1)
+        let added = sampleDevice(id: 2)
+        var cycle = USBDeviceDisplayCycle(devices: [original])
+
+        cycle.update(with: [added])
+
+        #expect(cycle.items == [
+            USBDeviceDisplayItem(device: original, state: .removed),
+            USBDeviceDisplayItem(device: added, state: .added)
+        ])
+    }
+
+    @Test func displayCycleResetClearsTransientStates() {
+        let added = sampleDevice(id: 2)
+        var cycle = USBDeviceDisplayCycle(devices: [sampleDevice(id: 1)])
+        cycle.update(with: [added])
+
+        cycle.reset(to: [added])
+
+        #expect(cycle.items == [
+            USBDeviceDisplayItem(device: added, state: .unchanged)
+        ])
+    }
+
+    @Test func displayCycleRestoresBaselineDeviceWithoutBadge() {
+        let original = sampleDevice(id: 1)
+        var cycle = USBDeviceDisplayCycle(devices: [original])
+        cycle.update(with: [])
+
+        cycle.update(with: [original])
+
+        #expect(cycle.items == [
+            USBDeviceDisplayItem(device: original, state: .unchanged)
+        ])
+    }
+
     private func sampleDevice(
         id: UInt64 = 1,
         release: UInt16? = 0x0100,

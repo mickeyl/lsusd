@@ -7,6 +7,10 @@ struct MenuBarPanel: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openWindow) private var openWindow
     @State private var showsSettings = false
+    @State private var deviceCycle = USBDeviceDisplayCycle()
+    @State private var serialDeviceCycle = USBDeviceDisplayCycle()
+    @State private var hasCycleBaseline = false
+    @State private var isCycleActive = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,6 +28,13 @@ struct MenuBarPanel: View {
             actions
         }
         .frame(width: 380, height: 760)
+        .onAppear(perform: beginDisplayCycle)
+        .onDisappear {
+            isCycleActive = false
+        }
+        .onChange(of: model.lastUpdated) {
+            updateDisplayCycle()
+        }
     }
 
     private var header: some View {
@@ -45,7 +56,11 @@ struct MenuBarPanel: View {
             }
             Spacer()
             Button {
-                Task { await model.refresh() }
+                Task {
+                    await model.refresh()
+                    guard isCycleActive else { return }
+                    beginDisplayCycle()
+                }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
@@ -61,7 +76,7 @@ struct MenuBarPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             scopeButtons
 
-            if displayedDevices.isEmpty {
+            if displayedItems.isEmpty {
                 Text(emptyDescription)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -69,33 +84,43 @@ struct MenuBarPanel: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(displayedDevices) { device in
+                        ForEach(displayedItems) { item in
                             Button {
+                                guard item.state != .removed else { return }
                                 model.selectedSection = selectedWindowSection
-                                model.selectedDeviceID = device.id
+                                model.selectedDeviceID = item.device.id
                                 showDeviceWindow()
                             } label: {
                                 HStack(spacing: 8) {
                                     VStack(alignment: .leading, spacing: 1) {
                                         DeviceIdentityLabel(
-                                            product: device.product,
-                                            isSerial: model.isSerialDevice(device)
+                                            product: item.device.product,
+                                            isSerial: isSerialDevice(item.device)
                                         )
-                                        Text(deviceSubtitle(device))
+                                        .strikethrough(item.state == .removed, color: .secondary)
+                                        Text(deviceSubtitle(item.device))
                                             .font(.system(.caption, design: .monospaced))
                                             .foregroundStyle(.secondary)
                                             .lineLimit(1)
                                     }
                                     Spacer()
-                                    DeviceSpeedBadge(
-                                        speed: device.displaySpeed,
-                                        bitsPerSecond: device.linkSpeed
-                                    )
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        DeviceSpeedBadge(
+                                            speed: item.device.displaySpeed,
+                                            bitsPerSecond: item.device.linkSpeed
+                                        )
+                                        if item.state != .unchanged {
+                                            DeviceChangeBadge(state: item.state)
+                                        }
+                                    }
                                 }
                                 .padding(.vertical, 5)
+                                .padding(.horizontal, 5)
+                                .background(rowTint(for: item.state), in: .rect(cornerRadius: 7))
                                 .contentShape(.rect)
                             }
                             .buttonStyle(.plain)
+                            .disabled(item.state == .removed)
                         }
                     }
                 }
@@ -192,11 +217,26 @@ struct MenuBarPanel: View {
         )
     }
 
-    private var displayedDevices: [USBDevice] {
+    private var displayedItems: [USBDeviceDisplayItem] {
+        let items: [USBDeviceDisplayItem]
         switch model.menuDeviceScope {
-        case .all: model.visibleDevices
-        case .serial: model.visibleSerialDevices
+        case .all: items = deviceCycle.items
+        case .serial: items = serialDeviceCycle.items
         }
+
+        let itemByID = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
+        let serialCandidates = serialDeviceCycle.items.map(\.device)
+        let visibleDevices: [USBDevice]
+        switch model.menuDeviceScope {
+        case .all:
+            visibleDevices = model.visibleDevices(
+                from: items.map(\.device),
+                serialCandidates: serialCandidates
+            )
+        case .serial:
+            visibleDevices = model.visibleSerialDevices(from: items.map(\.device))
+        }
+        return visibleDevices.compactMap { itemByID[$0.id] }
     }
 
     private var emptyDescription: String {
@@ -214,6 +254,37 @@ struct MenuBarPanel: View {
         switch model.menuDeviceScope {
         case .all: "\(device.vendor) · \(device.vidpid)"
         case .serial: "\(device.resolvedDeviceNode) · \(device.vidpid)"
+        }
+    }
+
+    private func beginDisplayCycle() {
+        isCycleActive = true
+        deviceCycle.reset(to: model.devices)
+        serialDeviceCycle.reset(to: model.serialDevices)
+        hasCycleBaseline = model.lastUpdated != nil
+    }
+
+    private func updateDisplayCycle() {
+        guard isCycleActive else { return }
+        guard hasCycleBaseline else {
+            deviceCycle.reset(to: model.devices)
+            serialDeviceCycle.reset(to: model.serialDevices)
+            hasCycleBaseline = true
+            return
+        }
+        deviceCycle.update(with: model.devices)
+        serialDeviceCycle.update(with: model.serialDevices)
+    }
+
+    private func isSerialDevice(_ device: USBDevice) -> Bool {
+        model.isSerialDevice(device, among: serialDeviceCycle.items.map(\.device))
+    }
+
+    private func rowTint(for state: USBDeviceDisplayState) -> Color {
+        switch state {
+        case .unchanged: .clear
+        case .added: .green.opacity(0.10)
+        case .removed: .red.opacity(0.07)
         }
     }
 }

@@ -52,6 +52,8 @@ final class AppModel {
     @ObservationIgnored private let repository = USBRepository()
     @ObservationIgnored private var monitor: IOKitChangeMonitor?
     @ObservationIgnored private var hasStarted = false
+    @ObservationIgnored private var refreshRequested = false
+    @ObservationIgnored private var pendingRefreshRecordsEvents = false
 
     init() {
         showHubs = UserDefaults.standard.bool(forKey: Self.showHubsKey)
@@ -60,11 +62,11 @@ final class AppModel {
     }
 
     var visibleDevices: [USBDevice] {
-        sorted(devices.filter { (showHubs || !$0.isHub) && matchesSearch($0) })
+        visibleDevices(from: devices)
     }
 
     var visibleSerialDevices: [USBDevice] {
-        sorted(serialDevices.filter(matchesSearch))
+        visibleSerialDevices(from: serialDevices)
     }
 
     var visibleTopology: [USBTopologyNode] {
@@ -77,9 +79,13 @@ final class AppModel {
     }
 
     func isSerialDevice(_ device: USBDevice) -> Bool {
+        isSerialDevice(device, among: serialDevices)
+    }
+
+    func isSerialDevice(_ device: USBDevice, among candidates: [USBDevice]) -> Bool {
         if device.deviceNode != nil { return true }
 
-        return serialDevices.contains { serialDevice in
+        return candidates.contains { serialDevice in
             if let locationID = device.locationID,
                serialDevice.locationID == locationID {
                 return true
@@ -107,33 +113,59 @@ final class AppModel {
     }
 
     func refresh(recordEvents: Bool = false) async {
-        guard !isLoading else { return }
+        guard !isLoading else {
+            refreshRequested = true
+            pendingRefreshRecordsEvents = pendingRefreshRecordsEvents || recordEvents
+            return
+        }
         isLoading = true
         defer { isLoading = false }
 
-        do {
-            let snapshot = try await repository.snapshot()
-            if recordEvents {
-                appendDiff(from: serialDevices, to: snapshot.serialDevices)
-            } else if events.isEmpty {
-                events = snapshot.serialDevices.map {
-                    USBEvent(action: .present, device: $0, timestamp: snapshot.capturedAt)
-                }
-            }
-            devices = snapshot.devices
-            topology = snapshot.topology
-            serialDevices = snapshot.serialDevices
-            lastUpdated = snapshot.capturedAt
-            errorMessage = nil
+        var shouldRecordEvents = recordEvents
+        repeat {
+            refreshRequested = false
+            pendingRefreshRecordsEvents = false
 
-            if let selectedDeviceID,
-               !devices.contains(where: { $0.id == selectedDeviceID }),
-               !serialDevices.contains(where: { $0.id == selectedDeviceID }) {
-                self.selectedDeviceID = nil
+            do {
+                let snapshot = try await repository.snapshot()
+                if shouldRecordEvents {
+                    appendDiff(from: serialDevices, to: snapshot.serialDevices)
+                } else if events.isEmpty {
+                    events = snapshot.serialDevices.map {
+                        USBEvent(action: .present, device: $0, timestamp: snapshot.capturedAt)
+                    }
+                }
+                devices = snapshot.devices
+                topology = snapshot.topology
+                serialDevices = snapshot.serialDevices
+                lastUpdated = snapshot.capturedAt
+                errorMessage = nil
+
+                if let selectedDeviceID,
+                   !devices.contains(where: { $0.id == selectedDeviceID }),
+                   !serialDevices.contains(where: { $0.id == selectedDeviceID }) {
+                    self.selectedDeviceID = nil
+                }
+            } catch {
+                errorMessage = error.localizedDescription
             }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+
+            shouldRecordEvents = pendingRefreshRecordsEvents
+        } while refreshRequested
+    }
+
+    func visibleDevices(
+        from source: [USBDevice],
+        serialCandidates: [USBDevice]? = nil
+    ) -> [USBDevice] {
+        sorted(
+            source.filter { (showHubs || !$0.isHub) && matchesSearch($0) },
+            serialCandidates: serialCandidates
+        )
+    }
+
+    func visibleSerialDevices(from source: [USBDevice]) -> [USBDevice] {
+        sorted(source.filter(matchesSearch), serialCandidates: source)
     }
 
     func clearEvents() {
@@ -164,7 +196,10 @@ final class AppModel {
         }
     }
 
-    private func sorted(_ devices: [USBDevice]) -> [USBDevice] {
+    private func sorted(
+        _ devices: [USBDevice],
+        serialCandidates: [USBDevice]? = nil
+    ) -> [USBDevice] {
         devices.sorted { lhs, rhs in
             switch deviceSortOrder {
             case .alphabetical:
@@ -175,8 +210,9 @@ final class AppModel {
                 }
                 return alphabeticallyPrecedes(lhs, rhs)
             case .deviceType:
-                let lhsType = deviceTypeSortRank(lhs)
-                let rhsType = deviceTypeSortRank(rhs)
+                let candidates = serialCandidates ?? serialDevices
+                let lhsType = deviceTypeSortRank(lhs, serialCandidates: candidates)
+                let rhsType = deviceTypeSortRank(rhs, serialCandidates: candidates)
                 if lhsType != rhsType { return lhsType < rhsType }
                 return alphabeticallyPrecedes(lhs, rhs)
             }
@@ -197,8 +233,11 @@ final class AppModel {
         return lhs.id < rhs.id
     }
 
-    private func deviceTypeSortRank(_ device: USBDevice) -> UInt16 {
-        if isSerialDevice(device) { return 0 }
+    private func deviceTypeSortRank(
+        _ device: USBDevice,
+        serialCandidates: [USBDevice]
+    ) -> UInt16 {
+        if isSerialDevice(device, among: serialCandidates) { return 0 }
         if device.isHub { return 1 }
         guard let deviceClass = device.deviceClass, deviceClass != 0 else {
             return UInt16.max

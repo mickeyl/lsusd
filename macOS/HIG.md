@@ -21,9 +21,17 @@ LSUSD is a menu-bar utility with a compact status panel and one optional device 
   10 Gbit/s, and purple from 10 Gbit/s upward. Color supplements the visible
   speed value and is never the sole information carrier.
 - Serial badge: terminal SF Symbol in a semantic capsule, suffixed to the product name.
-- Success: connected/add events.
+- Success: connected/add events and devices first detected while the status panel is open.
 - Secondary: present/initial state.
-- Destructive: disconnected/remove events.
+- Destructive: disconnected/remove events and devices removed while the status panel is open.
+
+## Live device changes
+
+- The menu-bar count and main device window always reflect the current IOKit snapshot.
+- While the status panel remains open, newly detected devices use a visible `New` badge and a subtle success tint.
+- Removed devices remain in the open status panel with a `Removed` badge, destructive tint, and struck-through name. They are not actionable.
+- Closing and reopening the status panel, or using its refresh control, starts a new presentation cycle: removed rows disappear and transient badges clear.
+- USB changes stay notification-driven. A short notification debounce may allow the IOKit registry to settle, but must not become a polling loop.
 
 ## Layout metrics
 

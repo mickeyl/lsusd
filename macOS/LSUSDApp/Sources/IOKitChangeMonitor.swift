@@ -7,6 +7,7 @@ final class IOKitChangeMonitor {
     private var iterators: [io_iterator_t] = []
     private let onChange: @MainActor () -> Void
     private var isStarting = true
+    private var pendingChange: Task<Void, Never>?
 
     init(onChange: @escaping @MainActor () -> Void) {
         guard let port = IONotificationPortCreate(kIOMainPortDefault) else {
@@ -26,6 +27,7 @@ final class IOKitChangeMonitor {
     }
 
     isolated deinit {
+        pendingChange?.cancel()
         for iterator in iterators { IOObjectRelease(iterator) }
         IONotificationPortDestroy(notificationPort)
     }
@@ -59,6 +61,20 @@ final class IOKitChangeMonitor {
         precondition(Thread.isMainThread)
         MainActor.assumeIsolated {
             guard !isStarting else { return }
+            scheduleChange()
+        }
+    }
+
+    private func scheduleChange() {
+        pendingChange?.cancel()
+        pendingChange = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(250))
+            } catch {
+                return
+            }
+            guard let self, !Task.isCancelled else { return }
+            pendingChange = nil
             onChange()
         }
     }

@@ -29,6 +29,10 @@ inline settings and quit controls. A separate device window covers the full
 CLI surface: device details, optional hubs, expandable topology, serial device
 nodes, event history, and plain-text, CSV, and JSON export.
 
+<p align="center">
+  <img src="docs/images/lsusd-menubar.png" alt="LSUSD for macOS menu-bar popover showing USB and serial devices with color-coded speed badges" width="390">
+</p>
+
 The app is deliberately independent from the CLI package. Install either or
 both products:
 

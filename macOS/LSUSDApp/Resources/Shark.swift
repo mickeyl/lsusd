@@ -28,6 +28,12 @@ public enum R {
         /// LSUSD
         public static var App_NAME: String { return NSLocalizedString("App_NAME", bundle: bundle, comment: "") }
 
+        /// New
+        public static var Badge_ADDED_DEVICE: String { return NSLocalizedString("Badge_ADDED_DEVICE", bundle: bundle, comment: "") }
+
+        /// Removed
+        public static var Badge_REMOVED_DEVICE: String { return NSLocalizedString("Badge_REMOVED_DEVICE", bundle: bundle, comment: "") }
+
         /// Serial device
         public static var Badge_SERIAL_DEVICE: String { return NSLocalizedString("Badge_SERIAL_DEVICE", bundle: bundle, comment: "") }
 

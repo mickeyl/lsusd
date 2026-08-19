@@ -36,6 +36,8 @@
 "Status_NO_EVENTS_DESCRIPTION" = "Verbindungsänderungen serieller USB-Geräte erscheinen hier.";
 
 /* Badges */
+"Badge_ADDED_DEVICE" = "Neu";
+"Badge_REMOVED_DEVICE" = "Entfernt";
 "Badge_SERIAL_DEVICE" = "Serielles Gerät";
 
 /* Tabelle */

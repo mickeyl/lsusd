@@ -1,3 +1,4 @@
+import LSUSDCore
 import SwiftUI
 
 enum LSUSDLayoutMetric {
@@ -61,6 +62,44 @@ struct DeviceSpeedBadge: View {
                         lineWidth: LSUSDLayoutMetric.speedBadgeStrokeWidth
                     )
             }
+    }
+}
+
+struct DeviceChangeBadge: View {
+    let state: USBDeviceDisplayState
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, LSUSDLayoutMetric.badgeHorizontalPadding)
+            .padding(.vertical, LSUSDLayoutMetric.badgeVerticalPadding)
+            .background(tint.opacity(0.12), in: Capsule())
+            .accessibilityLabel(title)
+    }
+
+    private var title: String {
+        switch state {
+        case .unchanged: ""
+        case .added: R.L.Badge_ADDED_DEVICE
+        case .removed: R.L.Badge_REMOVED_DEVICE
+        }
+    }
+
+    private var systemImage: String {
+        switch state {
+        case .unchanged: "circle"
+        case .added: "plus.circle.fill"
+        case .removed: "minus.circle.fill"
+        }
+    }
+
+    private var tint: Color {
+        switch state {
+        case .unchanged: .secondary
+        case .added: .green
+        case .removed: .red
+        }
     }
 }
 
