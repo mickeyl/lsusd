@@ -33,6 +33,16 @@ nodes, event history, and plain-text, CSV, and JSON export.
   <img src="docs/images/lsusd-menubar.png" alt="LSUSD for macOS menu-bar popover showing USB and serial devices with color-coded speed badges" width="390">
 </p>
 
+### What's new in 2.1.1
+
+- Keeps an open device list current when USB hardware is connected or removed.
+- Highlights newly connected devices and marks removed devices until the next
+  panel cycle or manual refresh.
+- Adds a dedicated macOS app icon for Spotlight, Finder, and other system
+  surfaces.
+
+See the complete [changelog](CHANGELOG.md) for release history.
+
 The app is deliberately independent from the CLI package. Install either or
 both products:
 

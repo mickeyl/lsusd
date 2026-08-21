@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="180" y1="120" x2="850" y2="920" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0068f5"/>
+      <stop offset="1" stop-color="#18bfff"/>
+    </linearGradient>
+    <linearGradient id="highlight" x1="512" y1="70" x2="512" y2="550" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="iconShadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <filter id="glyphShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#004b9e" flood-opacity="0.35"/>
+    </filter>
+    <clipPath id="tile">
+      <rect x="70" y="56" width="884" height="884" rx="205"/>
+    </clipPath>
+  </defs>
+
+  <rect x="92" y="82" width="840" height="862" rx="190" fill="#003b79" opacity="0.32" filter="url(#iconShadow)"/>
+  <rect x="70" y="56" width="884" height="884" rx="205" fill="url(#background)"/>
+  <g clip-path="url(#tile)">
+    <circle cx="180" cy="185" r="360" fill="#65d8ff" opacity="0.18"/>
+    <circle cx="860" cy="875" r="390" fill="#004fcb" opacity="0.16"/>
+    <rect x="70" y="56" width="884" height="520" fill="url(#highlight)"/>
+  </g>
+  <rect x="72" y="58" width="880" height="880" rx="203" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
+
+  <g fill="none" stroke="#ffffff" stroke-width="74" stroke-linecap="round" stroke-linejoin="round" filter="url(#glyphShadow)">
+    <path d="M512 736V344"/>
+    <path d="M512 500L305 354"/>
+    <path d="M512 500L699 354"/>
+  </g>
+  <g fill="#ffffff" filter="url(#glyphShadow)">
+    <path d="M512 215L415 365H609Z"/>
+    <circle cx="290" cy="343" r="57"/>
+    <rect x="652" y="296" width="108" height="108" rx="23"/>
+    <rect x="465" y="688" width="94" height="116" rx="39"/>
+  </g>
+</svg>
