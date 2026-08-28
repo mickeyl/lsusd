@@ -2,6 +2,13 @@
 
 All notable user-facing changes to LSUSD are documented in this file.
 
+## [2.1.2] - 2026-08-28
+
+### Fixed
+
+- Recognized USB devices reconnected to the same port without leaving duplicate
+  removed and new entries in the open menu-bar panel.
+
 ## [2.1.1] - 2026-08-21
 
 ### Added
@@ -27,5 +34,6 @@ All notable user-facing changes to LSUSD are documented in this file.
   lists, topology, event history, settings, and export support.
 - Added color-coded USB speed badges and configurable device sorting.
 
+[2.1.2]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.1...macos-v2.1.2
 [2.1.1]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.0...macos-v2.1.1
 [2.1.0]: https://github.com/mickeyl/lsusd/releases/tag/macos-v2.1.0
