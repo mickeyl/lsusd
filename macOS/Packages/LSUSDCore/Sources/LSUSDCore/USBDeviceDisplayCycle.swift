@@ -5,51 +5,96 @@ public enum USBDeviceDisplayState: Hashable, Sendable {
 }
 
 public struct USBDeviceDisplayItem: Identifiable, Hashable, Sendable {
+    public let id: USBDevice.ID
     public let device: USBDevice
     public let state: USBDeviceDisplayState
 
-    public var id: USBDevice.ID { device.id }
+    public init(
+        id: USBDevice.ID? = nil,
+        device: USBDevice,
+        state: USBDeviceDisplayState
+    ) {
+        self.id = id ?? device.id
+        self.device = device
+        self.state = state
+    }
 }
 
 public struct USBDeviceDisplayCycle: Sendable {
-    private var baselineIDs: Set<USBDevice.ID> = []
-    private var currentIDs: Set<USBDevice.ID> = []
-    private var knownDevices: [USBDevice.ID: USBDevice] = [:]
-    private var orderedIDs: [USBDevice.ID] = []
+    private var baselineIdentities: Set<USBDeviceDisplayIdentity> = []
+    private var currentIdentities: Set<USBDeviceDisplayIdentity> = []
+    private var knownDevices: [USBDeviceDisplayIdentity: USBDevice] = [:]
+    private var displayIDs: [USBDeviceDisplayIdentity: USBDevice.ID] = [:]
+    private var orderedIdentities: [USBDeviceDisplayIdentity] = []
 
     public init(devices: [USBDevice] = []) {
         reset(to: devices)
     }
 
     public var items: [USBDeviceDisplayItem] {
-        orderedIDs.compactMap { id in
-            guard let device = knownDevices[id] else { return nil }
+        orderedIdentities.compactMap { identity in
+            guard let id = displayIDs[identity],
+                  let device = knownDevices[identity] else {
+                return nil
+            }
             let state: USBDeviceDisplayState
-            if !currentIDs.contains(id) {
+            if !currentIdentities.contains(identity) {
                 state = .removed
-            } else if !baselineIDs.contains(id) {
+            } else if !baselineIdentities.contains(identity) {
                 state = .added
             } else {
                 state = .unchanged
             }
-            return USBDeviceDisplayItem(device: device, state: state)
+            return USBDeviceDisplayItem(id: id, device: device, state: state)
         }
     }
 
     public mutating func reset(to devices: [USBDevice]) {
-        baselineIDs = Set(devices.map(\.id))
-        currentIDs = baselineIDs
-        knownDevices = Dictionary(uniqueKeysWithValues: devices.map { ($0.id, $0) })
-        orderedIDs = devices.map(\.id)
+        knownDevices = [:]
+        displayIDs = [:]
+        orderedIdentities = []
+        updateKnownDevices(with: devices)
+        baselineIdentities = Set(devices.map(\.displayIdentity))
+        currentIdentities = baselineIdentities
     }
 
     public mutating func update(with devices: [USBDevice]) {
-        currentIDs = Set(devices.map(\.id))
+        updateKnownDevices(with: devices)
+        currentIdentities = Set(devices.map(\.displayIdentity))
+    }
+
+    private mutating func updateKnownDevices(with devices: [USBDevice]) {
         for device in devices {
-            if knownDevices[device.id] == nil {
-                orderedIDs.append(device.id)
+            let identity = device.displayIdentity
+            if knownDevices[identity] == nil {
+                orderedIdentities.append(identity)
+                displayIDs[identity] = device.id
             }
-            knownDevices[device.id] = device
+            knownDevices[identity] = device
         }
+    }
+}
+
+private enum USBDeviceDisplayIdentity: Hashable, Sendable {
+    case location(
+        id: UInt32,
+        vendorID: UInt16,
+        productID: UInt16,
+        serial: String?,
+        deviceNode: String?
+    )
+    case registry(USBDevice.ID)
+}
+
+private extension USBDevice {
+    var displayIdentity: USBDeviceDisplayIdentity {
+        guard let locationID else { return .registry(id) }
+        return .location(
+            id: locationID,
+            vendorID: vendorID,
+            productID: productID,
+            serial: serial == "?" ? nil : serial,
+            deviceNode: deviceNode
+        )
     }
 }

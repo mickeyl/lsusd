@@ -27,7 +27,7 @@ help:
 	@echo "  make mac-generate  Generate the macOS Xcode project"
 	@echo "  make mac-build     Build the native macOS app"
 	@echo "  make mac-test      Run the native core tests"
-	@echo "  make mac-run       Build and launch the native macOS app"
+	@echo "  make mac-run       Build and relaunch the native macOS app"
 	@echo "  make mac-package   Build and package the Developer ID release app"
 	@echo "  make mac-release   Notarize and staple the Homebrew release archive"
 	@echo "  make clean      Remove Python cache files"
@@ -59,7 +59,8 @@ mac-test:
 	swift test --package-path macOS/Packages/LSUSDCore
 
 mac-run: mac-build
-	open "$(MAC_DERIVED_DATA)/Build/Products/Debug/LSUSD.app"
+	-@pkill -x LSUSD
+	open -n "$(MAC_DERIVED_DATA)/Build/Products/Debug/LSUSD.app"
 
 mac-package: mac-generate
 	$(XCODEBUILD) -project $(MAC_PROJECT) -scheme $(MAC_SCHEME) -configuration Release -destination 'generic/platform=macOS' -derivedDataPath $(MAC_DERIVED_DATA) CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$(MAC_SIGN_IDENTITY)" DEVELOPMENT_TEAM=NANNL9SK66 ENABLE_HARDENED_RUNTIME=YES CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO OTHER_CODE_SIGN_FLAGS="--timestamp" build

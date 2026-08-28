@@ -224,7 +224,7 @@ struct MenuBarPanel: View {
         case .serial: items = serialDeviceCycle.items
         }
 
-        let itemByID = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
+        let itemByDeviceID = Dictionary(uniqueKeysWithValues: items.map { ($0.device.id, $0) })
         let serialCandidates = serialDeviceCycle.items.map(\.device)
         let visibleDevices: [USBDevice]
         switch model.menuDeviceScope {
@@ -236,7 +236,7 @@ struct MenuBarPanel: View {
         case .serial:
             visibleDevices = model.visibleSerialDevices(from: items.map(\.device))
         }
-        return visibleDevices.compactMap { itemByID[$0.id] }
+        return visibleDevices.compactMap { itemByDeviceID[$0.id] }
     }
 
     private var emptyDescription: String {

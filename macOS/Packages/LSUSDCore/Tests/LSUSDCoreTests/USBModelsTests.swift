@@ -47,7 +47,7 @@ struct USBModelsTests {
 
     @Test func displayCycleRetainsRemovedDevicesAndMarksAdditions() {
         let original = sampleDevice(id: 1)
-        let added = sampleDevice(id: 2)
+        let added = sampleDevice(id: 2, locationID: 0x01300000)
         var cycle = USBDeviceDisplayCycle(devices: [original])
 
         cycle.update(with: [added])
@@ -71,14 +71,49 @@ struct USBModelsTests {
     }
 
     @Test func displayCycleRestoresBaselineDeviceWithoutBadge() {
-        let original = sampleDevice(id: 1)
+        let original = sampleDevice(id: 1, serial: "?")
         var cycle = USBDeviceDisplayCycle(devices: [original])
         cycle.update(with: [])
 
-        cycle.update(with: [original])
+        let reconnected = sampleDevice(id: 2, serial: "?")
+        cycle.update(with: [reconnected])
 
         #expect(cycle.items == [
-            USBDeviceDisplayItem(device: original, state: .unchanged)
+            USBDeviceDisplayItem(id: original.id, device: reconnected, state: .unchanged)
+        ])
+    }
+
+    @Test func displayCycleKeepsReconnectedAdditionInSingleRow() {
+        let added = sampleDevice(id: 2)
+        var cycle = USBDeviceDisplayCycle(devices: [sampleDevice(id: 1, locationID: 0x01300000)])
+        cycle.update(with: [added])
+        cycle.update(with: [])
+
+        let reconnected = sampleDevice(id: 3)
+        cycle.update(with: [reconnected])
+
+        #expect(cycle.items == [
+            USBDeviceDisplayItem(
+                device: sampleDevice(id: 1, locationID: 0x01300000),
+                state: .removed
+            ),
+            USBDeviceDisplayItem(id: added.id, device: reconnected, state: .added)
+        ])
+    }
+
+    @Test func displayCycleDoesNotMergeAmbiguousSerialNumbers() {
+        let first = sampleDevice(id: 1, locationID: 0x01300000)
+        let second = sampleDevice(id: 2, locationID: 0x01400000)
+        var cycle = USBDeviceDisplayCycle(devices: [first, second])
+        cycle.update(with: [])
+
+        let reconnectedFirst = sampleDevice(id: 3, locationID: first.locationID)
+        let reconnectedSecond = sampleDevice(id: 4, locationID: second.locationID)
+        cycle.update(with: [reconnectedFirst, reconnectedSecond])
+
+        #expect(cycle.items == [
+            USBDeviceDisplayItem(id: first.id, device: reconnectedFirst, state: .unchanged),
+            USBDeviceDisplayItem(id: second.id, device: reconnectedSecond, state: .unchanged)
         ])
     }
 
@@ -86,16 +121,18 @@ struct USBModelsTests {
         id: UInt64 = 1,
         release: UInt16? = 0x0100,
         speed: UInt64? = 480_000_000,
-        hub: Bool = false
+        hub: Bool = false,
+        locationID: UInt32? = 0x01400000,
+        serial: String = "SERIAL"
     ) -> USBDevice {
         USBDevice(
             id: id,
             bus: 1,
             address: 2,
-            locationID: 0x01400000,
+            locationID: locationID,
             product: "Product",
             vendor: "Vendor",
-            serial: "SERIAL",
+            serial: serial,
             vendorID: 0x1234,
             productID: 0x00ab,
             releaseValue: release,
