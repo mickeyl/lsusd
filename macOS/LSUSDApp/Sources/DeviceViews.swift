@@ -19,6 +19,13 @@ struct DeviceTable: View {
                     .width(min: 42, ideal: 48, max: 60)
                 TableColumn(R.L.Table_DEVICE) { device in technical(device.addressText) }
                     .width(min: 50, ideal: 58, max: 70)
+                TableColumn(R.L.Details_DEVICE_NODE) { device in
+                    technical(device.resolvedDeviceNode)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .copySerialPortContextMenu(for: device)
+                }
+                    .width(min: 120, ideal: 180)
                 TableColumn(R.L.Table_PRODUCT) { device in
                     DeviceIdentityLabel(
                         product: device.product,
@@ -26,7 +33,7 @@ struct DeviceTable: View {
                     )
                 }
                     .width(min: 140, ideal: 230)
-                TableColumn(R.L.Table_VENDOR, value: \.vendor)
+                TableColumn(R.L.Table_VENDOR) { device in Text(USBDisplayValue.text(device.vendor)) }
                     .width(min: 100, ideal: 160)
                 TableColumn(R.L.Table_VIDPID) { device in technical(device.vidpid) }
                     .width(min: 90, ideal: 95, max: 110)
@@ -44,7 +51,7 @@ struct DeviceTable: View {
     }
 
     private func technical(_ value: String) -> some View {
-        Text(value).font(.system(.body, design: .monospaced))
+        Text(USBDisplayValue.text(value)).font(.system(.body, design: .monospaced))
     }
 }
 
@@ -62,17 +69,21 @@ struct SerialDeviceTable: View {
         } else {
             Table(devices, selection: $selection) {
                 TableColumn(R.L.Table_DEVICE) { device in
-                    Text(device.resolvedDeviceNode).font(.system(.body, design: .monospaced))
+                    Text(USBDisplayValue.text(device.resolvedDeviceNode))
+                        .font(.system(.body, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .copySerialPortContextMenu(for: device)
                 }
                 .width(min: 175, ideal: 220)
                 TableColumn(R.L.Table_PRODUCT) { device in
                     DeviceIdentityLabel(product: device.product, isSerial: true)
                 }
                     .width(min: 130, ideal: 200)
-                TableColumn(R.L.Table_VENDOR, value: \.vendor)
+                TableColumn(R.L.Table_VENDOR) { device in Text(USBDisplayValue.text(device.vendor)) }
                     .width(min: 100, ideal: 150)
                 TableColumn(R.L.Table_SERIAL) { device in
-                    Text(device.serial).font(.system(.body, design: .monospaced))
+                    Text(USBDisplayValue.text(device.serial)).font(.system(.body, design: .monospaced))
                 }
                 .width(min: 100, ideal: 150)
                 TableColumn(R.L.Table_VIDPID) { device in
@@ -80,7 +91,7 @@ struct SerialDeviceTable: View {
                 }
                 .width(min: 90, ideal: 95, max: 110)
                 TableColumn(R.L.Table_RELEASE) { device in
-                    Text(device.release).font(.system(.body, design: .monospaced))
+                    Text(USBDisplayValue.text(device.release)).font(.system(.body, design: .monospaced))
                 }
                 .width(min: 54, ideal: 62, max: 72)
             }
@@ -122,12 +133,15 @@ struct TopologyView: View {
                                     speed: node.device.displaySpeed,
                                     bitsPerSecond: node.device.linkSpeed
                                 )
-                                Text(verbatim: "·").foregroundStyle(.tertiary)
-                                technicalCaption(node.device.locationText)
+                                if let deviceNode = node.device.deviceNode {
+                                    Text(verbatim: "·").foregroundStyle(.tertiary)
+                                    technicalCaption(deviceNode)
+                                }
                             }
                         }
                     }
                     .tag(node.device.id)
+                    .copySerialPortContextMenu(for: node.device)
                     .accessibilityElement(children: .combine)
                 }
             }
@@ -135,7 +149,7 @@ struct TopologyView: View {
     }
 
     private func technicalCaption(_ value: String) -> some View {
-        Text(verbatim: value)
+        Text(verbatim: USBDisplayValue.text(value))
             .font(.system(.caption, design: .monospaced))
             .foregroundStyle(.secondary)
     }

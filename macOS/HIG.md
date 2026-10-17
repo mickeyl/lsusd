@@ -15,7 +15,8 @@ LSUSD is a menu-bar utility with a compact status panel and one optional device 
 
 - Primary text: device product and primary labels.
 - Secondary text: vendor, status context, timestamps, and unavailable metadata.
-- Data text: VID:PID, location ID, serial number, release, and device node.
+- Data text: VID:PID, serial number, release, and device node. Missing values
+  show an em dash in the interface and `?` in exports.
 - Speed badge: system caption text in a semantic capsule; never monospaced. The
   tint is gray through 12 Mbit/s, blue through 480 Mbit/s, orange below
   10 Gbit/s, and purple from 10 Gbit/s upward. Color supplements the visible
@@ -37,6 +38,9 @@ LSUSD is a menu-bar utility with a compact status panel and one optional device 
 
 - Menu panel size: 380 x 760 points, constrained by the available screen height.
 - Main window minimum: 820 x 500 points; default: 1100 x 680 points.
+- The device table and topology show serial device nodes when available. The
+  menu panel lists them on a separate line below vendor and VID:PID.
+- Right-clicking a device node offers one copy action per serial port path.
 - Inspector width: 260-380 points.
 - Dense table and tree rows use native macOS control metrics.
 - Scrollable menu rows reserve 12 points between trailing badges and the scroll indicator.

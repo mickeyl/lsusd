@@ -74,7 +74,7 @@ public enum USBExport {
     private static let deviceFields: [Field] = [
         Field(name: "bus", value: { $0.busText }),
         Field(name: "address", value: { $0.addressText }),
-        Field(name: "location", value: { $0.locationText }),
+        Field(name: "device", value: { $0.resolvedDeviceNode }),
         Field(name: "product", value: { $0.product }),
         Field(name: "vendor", value: { $0.vendor }),
         Field(name: "serial", value: { $0.serial }),

@@ -20,12 +20,40 @@ struct USBModelsTests {
         #expect(sampleDevice(release: 0x1234).release == "12.34")
     }
 
+    @Test func associatesAllSerialNodesWithTheirPhysicalUSBDevice() {
+        let device = sampleDevice()
+        let topology = [USBTopologyNode(device: device, children: [])]
+        let serialPorts = [
+            sampleDevice(id: 10, deviceNode: "/dev/cu.usbmodem2", isSerialPort: true),
+            sampleDevice(id: 11, deviceNode: "/dev/cu.usbmodem1", isSerialPort: true),
+            sampleDevice(id: 12, locationID: 0x01500000, deviceNode: "/dev/cu.other", isSerialPort: true)
+        ]
+
+        let enriched = USBTopologyNode.attachingDeviceNodes(to: topology, from: serialPorts)
+
+        #expect(enriched[0].device.resolvedDeviceNode == "/dev/cu.usbmodem1, /dev/cu.usbmodem2")
+        #expect(enriched[0].device.deviceNodes == ["/dev/cu.usbmodem1", "/dev/cu.usbmodem2"])
+        #expect(!enriched[0].device.isSerialPort)
+        #expect(device.resolvedDeviceNode == "?")
+        #expect(serialPorts[0].resolvedDeviceNode == "/dev/cu.usbmodem2")
+    }
+
     @Test func exportsCLICompatibleCSV() throws {
-        let data = try USBExport.data(devices: [sampleDevice()], serialOnly: false, format: .csv)
+        let device = sampleDevice(deviceNode: "/dev/cu.usbmodem1, /dev/cu.usbmodem2")
+        let data = try USBExport.data(devices: [device], serialOnly: false, format: .csv)
         let text = try #require(String(data: data, encoding: .utf8))
 
-        #expect(text.hasPrefix("bus,address,location,product,vendor,serial,vidpid,release,speed\n"))
-        #expect(text.contains("001,002,0x01400000,Product,Vendor,SERIAL,1234:00AB,1.00,480M"))
+        #expect(text.hasPrefix("bus,address,device,product,vendor,serial,vidpid,release,speed\n"))
+        #expect(text.contains("001,002,\"/dev/cu.usbmodem1, /dev/cu.usbmodem2\",Product,Vendor,SERIAL,1234:00AB,1.00,480M"))
+    }
+
+    @Test func exportsUnknownDeviceNodeWithoutInventingAPath() throws {
+        let data = try USBExport.data(devices: [sampleDevice()], serialOnly: false, format: .json)
+        let text = try #require(String(data: data, encoding: .utf8))
+
+        #expect(text.contains("\"device\" : \"?\""))
+        #expect(!text.contains("/dev/bus/usb"))
+        #expect(!text.contains("location"))
     }
 
     @Test func hidesHubsWithoutDroppingTheirChildren() {
@@ -37,12 +65,15 @@ struct USBModelsTests {
     }
 
     @Test func exportsWatchCompatibleEvents() throws {
-        let event = USBEvent(action: .add, device: sampleDevice())
+        let event = USBEvent(
+            action: .add,
+            device: sampleDevice(deviceNode: "/dev/cu.usbmodem1", isSerialPort: true)
+        )
         let data = try USBExport.data(events: [event], format: .csv)
         let text = try #require(String(data: data, encoding: .utf8))
 
         #expect(text.hasPrefix("action,device,product,vendor,serial,vidpid,release\n"))
-        #expect(text.contains("add,/dev/bus/usb/001/002,Product,Vendor,SERIAL,1234:00AB,1.00"))
+        #expect(text.contains("add,/dev/cu.usbmodem1,Product,Vendor,SERIAL,1234:00AB,1.00"))
     }
 
     @Test func displayCycleRetainsRemovedDevicesAndMarksAdditions() {
@@ -56,6 +87,16 @@ struct USBModelsTests {
             USBDeviceDisplayItem(device: original, state: .removed),
             USBDeviceDisplayItem(device: added, state: .added)
         ])
+    }
+
+    @Test func displayCycleKeepsPhysicalDeviceWhenSerialNodeAppears() {
+        var cycle = USBDeviceDisplayCycle(devices: [sampleDevice()])
+
+        cycle.update(with: [sampleDevice(deviceNode: "/dev/cu.usbmodem1")])
+
+        #expect(cycle.items.count == 1)
+        #expect(cycle.items[0].state == .unchanged)
+        #expect(cycle.items[0].device.resolvedDeviceNode == "/dev/cu.usbmodem1")
     }
 
     @Test func displayCycleResetClearsTransientStates() {
@@ -123,7 +164,9 @@ struct USBModelsTests {
         speed: UInt64? = 480_000_000,
         hub: Bool = false,
         locationID: UInt32? = 0x01400000,
-        serial: String = "SERIAL"
+        serial: String = "SERIAL",
+        deviceNode: String? = nil,
+        isSerialPort: Bool = false
     ) -> USBDevice {
         USBDevice(
             id: id,
@@ -138,7 +181,9 @@ struct USBModelsTests {
             releaseValue: release,
             linkSpeed: speed,
             isHub: hub,
-            deviceClass: hub ? 9 : 3
+            deviceClass: hub ? 9 : 3,
+            deviceNode: deviceNode,
+            isSerialPort: isSerialPort
         )
     }
 }

@@ -9,10 +9,18 @@ public actor USBRepository {
         let topology = try discovery.discoverTopology()
         let devices = topology.flatMap(\.flattenedDevices)
             .sorted(by: USBDevice.registryOrder)
-        let serialDevices = try discovery.discoverSerialDevices(usbDevices: devices)
+        let allSerialDevices = try discovery.discoverSerialDevices(usbDevices: devices)
+        let serialDevices = allSerialDevices.filter {
+            $0.deviceNode?.hasPrefix("/dev/cu.usb") == true
+        }
+        let enrichedTopology = USBTopologyNode.attachingDeviceNodes(
+            to: topology,
+            from: allSerialDevices
+        )
         return USBSnapshot(
-            devices: devices,
-            topology: topology,
+            devices: enrichedTopology.flatMap(\.flattenedDevices)
+                .sorted(by: USBDevice.registryOrder),
+            topology: enrichedTopology,
             serialDevices: serialDevices
         )
     }
@@ -47,22 +55,27 @@ private struct IOKitUSBDiscovery {
         while case let service = IOIteratorNext(iterator), service != 0 {
             defer { IOObjectRelease(service) }
             guard let node = stringProperty("IOCalloutDevice", of: service),
-                  node.hasPrefix("/dev/cu.usb") else { continue }
+                  let ancestor = usbAncestorProperties(of: service) else { continue }
 
             let serviceID = registryID(of: service)
-            let ancestor = usbAncestorProperties(of: service)
             let vendorID = uint16(ancestor["idVendor"])
             let productID = uint16(ancestor["idProduct"])
             let serial = firstString(in: ancestor, keys: ["USB Serial Number", "kUSBSerialNumberString"])
-            let matched = usbDevices.first(where: {
-                serial != "?" && $0.serial == serial
-            }) ?? usbDevices.uniqueMatch(vendorID: vendorID, productID: productID)
+            let locationID = optionalUInt32(ancestor["locationID"])
+            let matched: USBDevice?
+            if let locationID {
+                matched = usbDevices.first { $0.locationID == locationID }
+            } else {
+                matched = usbDevices.first {
+                    serial != "?" && $0.serial == serial
+                } ?? usbDevices.uniqueMatch(vendorID: vendorID, productID: productID)
+            }
 
             resultDevices.append(USBDevice(
                 id: serviceID,
                 bus: matched?.bus ?? bus(from: uint32(ancestor["locationID"])),
                 address: matched?.address ?? int(ancestor["USB Address"]),
-                locationID: matched?.locationID ?? optionalUInt32(ancestor["locationID"]),
+                locationID: matched?.locationID ?? locationID,
                 product: matched?.product ?? firstString(in: ancestor, keys: ["kUSBProductString", "USB Product Name"]),
                 vendor: matched?.vendor ?? firstString(in: ancestor, keys: ["kUSBVendorString", "USB Vendor Name"]),
                 serial: matched?.serial ?? serial,
@@ -72,7 +85,8 @@ private struct IOKitUSBDiscovery {
                 linkSpeed: matched?.linkSpeed ?? optionalUInt64(ancestor["UsbLinkSpeed"]),
                 isHub: false,
                 deviceClass: matched?.deviceClass ?? optionalUInt8(ancestor["bDeviceClass"]),
-                deviceNode: node
+                deviceNode: node,
+                isSerialPort: true
             ))
         }
         return resultDevices.sorted { $0.resolvedDeviceNode < $1.resolvedDeviceNode }
@@ -128,7 +142,7 @@ private struct IOKitUSBDiscovery {
         )
     }
 
-    private func usbAncestorProperties(of entry: io_registry_entry_t) -> [String: Any] {
+    private func usbAncestorProperties(of entry: io_registry_entry_t) -> [String: Any]? {
         var merged: [String: Any] = [:]
         var current = entry
         var ownsCurrent = false
@@ -137,6 +151,14 @@ private struct IOKitUSBDiscovery {
             let properties = allProperties(of: current)
             for (key, value) in properties where merged[key] == nil {
                 merged[key] = value
+            }
+            if properties["idVendor"] != nil,
+               properties["idProduct"] != nil,
+               properties["bInterfaceNumber"] == nil {
+                // Prefer the physical USB device over properties copied onto an interface.
+                merged.merge(properties) { _, physical in physical }
+                if ownsCurrent { IOObjectRelease(current) }
+                return merged
             }
             var parent: io_registry_entry_t = 0
             let result = IORegistryEntryGetParentEntry(current, kIOServicePlane, &parent)
@@ -149,7 +171,7 @@ private struct IOKitUSBDiscovery {
             current = parent
             ownsCurrent = true
         }
-        return merged
+        return nil
     }
 
     private func allProperties(of entry: io_registry_entry_t) -> [String: Any] {

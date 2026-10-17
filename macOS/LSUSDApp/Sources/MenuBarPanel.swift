@@ -102,6 +102,14 @@ struct MenuBarPanel: View {
                                             .font(.system(.caption, design: .monospaced))
                                             .foregroundStyle(.secondary)
                                             .lineLimit(1)
+                                        if model.menuDeviceScope == .all,
+                                           let deviceNode = item.device.deviceNode {
+                                            Text(verbatim: deviceNode)
+                                                .font(.system(.caption, design: .monospaced))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                                .help(deviceNode)
+                                        }
                                     }
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 4) {
@@ -120,6 +128,7 @@ struct MenuBarPanel: View {
                                 .contentShape(.rect)
                             }
                             .buttonStyle(.plain)
+                            .copySerialPortContextMenu(for: item.device)
                             .disabled(item.state == .removed)
                         }
                     }
@@ -252,8 +261,8 @@ struct MenuBarPanel: View {
 
     private func deviceSubtitle(_ device: USBDevice) -> String {
         switch model.menuDeviceScope {
-        case .all: "\(device.vendor) · \(device.vidpid)"
-        case .serial: "\(device.resolvedDeviceNode) · \(device.vidpid)"
+        case .all: "\(USBDisplayValue.text(device.vendor)) · \(device.vidpid)"
+        case .serial: "\(USBDisplayValue.text(device.resolvedDeviceNode)) · \(device.vidpid)"
         }
     }
 

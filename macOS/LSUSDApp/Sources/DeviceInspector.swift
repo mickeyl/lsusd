@@ -31,7 +31,6 @@ struct DeviceInspector: View {
             Section(R.L.Details_CONNECTION) {
                 DetailRow(label: R.L.Details_BUS, value: device.busText, technical: true)
                 DetailRow(label: R.L.Details_ADDRESS, value: device.addressText, technical: true)
-                DetailRow(label: R.L.Details_LOCATION, value: device.locationText, technical: true)
                 LabeledContent(R.L.Details_SPEED) {
                     DeviceSpeedBadge(
                         speed: device.displaySpeed,
@@ -39,6 +38,7 @@ struct DeviceInspector: View {
                     )
                 }
                 DetailRow(label: R.L.Details_DEVICE_NODE, value: device.resolvedDeviceNode, technical: true)
+                    .copySerialPortContextMenu(for: device)
                 DetailRow(label: R.L.Details_HUB, value: device.isHub ? R.L.Details_YES : R.L.Details_NO)
             }
         }
@@ -54,7 +54,7 @@ private struct DetailRow: View {
 
     var body: some View {
         LabeledContent(label) {
-            Text(value)
+            Text(USBDisplayValue.text(value))
                 .font(technical ? .system(.body, design: .monospaced) : .body)
                 .textSelection(.enabled)
                 .multilineTextAlignment(.trailing)

@@ -8,6 +8,7 @@
 "Common_SETTINGS" = "Einstellungen …";
 "Common_QUIT" = "LSUSD beenden";
 "Common_COPY" = "Kopieren";
+"Common_COPY_DEVICE_NODE" = "%@ kopieren";
 "Common_EXPORT" = "Exportieren";
 "Common_CLEAR" = "Leeren";
 "Common_SHOW_HUBS" = "USB-Hubs anzeigen";

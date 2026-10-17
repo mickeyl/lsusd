@@ -39,7 +39,7 @@ private struct EventRow: View {
                     Text(event.title).fontWeight(.medium)
                     DeviceIdentityLabel(product: event.device.product, isSerial: true)
                 }
-                Text("\(event.device.resolvedDeviceNode) · \(event.device.vidpid)")
+                Text("\(USBDisplayValue.text(event.device.resolvedDeviceNode)) · \(event.device.vidpid)")
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
@@ -49,6 +49,7 @@ private struct EventRow: View {
         }
         .padding(.vertical, 3)
         .contentShape(.rect)
+        .copySerialPortContextMenu(for: event.device)
     }
 }
 

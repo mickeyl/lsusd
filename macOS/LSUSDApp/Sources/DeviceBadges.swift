@@ -11,13 +11,17 @@ enum LSUSDLayoutMetric {
     static let speedBadgeStrokeWidth: CGFloat = 0.5
 }
 
+enum USBDisplayValue {
+    static func text(_ value: String) -> String { value == "?" ? "—" : value }
+}
+
 struct DeviceIdentityLabel: View {
     let product: String
     let isSerial: Bool
 
     var body: some View {
         HStack(spacing: LSUSDLayoutMetric.identitySpacing) {
-            Text(verbatim: product)
+            Text(verbatim: USBDisplayValue.text(product))
                 .lineLimit(1)
 
             if isSerial {
@@ -49,7 +53,7 @@ struct DeviceSpeedBadge: View {
     }
 
     var body: some View {
-        Text(verbatim: speed)
+        Text(verbatim: USBDisplayValue.text(speed))
             .font(.caption.weight(.medium))
             .foregroundStyle(.primary)
             .padding(.horizontal, LSUSDLayoutMetric.badgeHorizontalPadding)

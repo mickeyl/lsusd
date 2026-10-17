@@ -43,6 +43,11 @@ public enum R {
         /// Copy
         public static var Common_COPY: String { return NSLocalizedString("Common_COPY", bundle: bundle, comment: "") }
 
+        /// Copy %@
+        public static func Common_COPY_DEVICE_NODE(_ value1: String) -> String {
+            return String(format: NSLocalizedString("Common_COPY_DEVICE_NODE", bundle: bundle, comment: ""), value1)
+        }
+
         /// Export
         public static var Common_EXPORT: String { return NSLocalizedString("Common_EXPORT", bundle: bundle, comment: "") }
 

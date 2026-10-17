@@ -94,7 +94,7 @@ private extension USBDevice {
             vendorID: vendorID,
             productID: productID,
             serial: serial == "?" ? nil : serial,
-            deviceNode: deviceNode
+            deviceNode: isSerialPort ? deviceNode : nil
         )
     }
 }

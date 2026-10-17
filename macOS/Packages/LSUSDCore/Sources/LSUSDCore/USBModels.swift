@@ -14,7 +14,8 @@ public struct USBDevice: Identifiable, Codable, Hashable, Sendable {
     public let linkSpeed: UInt64?
     public let isHub: Bool
     public let deviceClass: UInt8?
-    public let deviceNode: String?
+    public let deviceNodes: [String]
+    public let isSerialPort: Bool
 
     public init(
         id: UInt64,
@@ -30,7 +31,9 @@ public struct USBDevice: Identifiable, Codable, Hashable, Sendable {
         linkSpeed: UInt64?,
         isHub: Bool,
         deviceClass: UInt8? = nil,
-        deviceNode: String? = nil
+        deviceNode: String? = nil,
+        deviceNodes: [String]? = nil,
+        isSerialPort: Bool = false
     ) {
         self.id = id
         self.bus = bus
@@ -45,7 +48,8 @@ public struct USBDevice: Identifiable, Codable, Hashable, Sendable {
         self.linkSpeed = linkSpeed
         self.isHub = isHub
         self.deviceClass = deviceClass
-        self.deviceNode = deviceNode
+        self.deviceNodes = deviceNodes ?? deviceNode.map { [$0] } ?? []
+        self.isSerialPort = isSerialPort
     }
 
     public var busText: String { String(format: "%03d", bus) }
@@ -67,8 +71,31 @@ public struct USBDevice: Identifiable, Codable, Hashable, Sendable {
     public var displaySpeed: String {
         speed == "?" ? speed : "\(speed)bit/s"
     }
+    public var deviceNode: String? {
+        deviceNodes.isEmpty ? nil : deviceNodes.joined(separator: ", ")
+    }
     public var resolvedDeviceNode: String {
-        deviceNode ?? "/dev/bus/usb/\(busText)/\(addressText)"
+        deviceNode ?? "?"
+    }
+
+    func withDeviceNodes(_ nodes: [String]) -> USBDevice {
+        USBDevice(
+            id: id,
+            bus: bus,
+            address: address,
+            locationID: locationID,
+            product: product,
+            vendor: vendor,
+            serial: serial,
+            vendorID: vendorID,
+            productID: productID,
+            releaseValue: releaseValue,
+            linkSpeed: linkSpeed,
+            isHub: isHub,
+            deviceClass: deviceClass,
+            deviceNodes: nodes,
+            isSerialPort: isSerialPort
+        )
     }
 
     private static func compactSpeed(_ bits: UInt64) -> String {
@@ -105,6 +132,32 @@ public struct USBTopologyNode: Identifiable, Codable, Hashable, Sendable {
             return visibleChildren
         }
         return [USBTopologyNode(device: device, children: visibleChildren)]
+    }
+
+    static func attachingDeviceNodes(
+        to topology: [USBTopologyNode],
+        from serialDevices: [USBDevice]
+    ) -> [USBTopologyNode] {
+        let nodesByLocation = Dictionary(grouping: serialDevices.compactMap { device -> (UInt32, String)? in
+            guard let locationID = device.locationID,
+                  let node = device.deviceNodes.first else {
+                return nil
+            }
+            return (locationID, node)
+        }, by: \.0)
+            .mapValues { entries in
+                Set(entries.map(\.1)).sorted()
+            }
+
+        func attach(_ node: USBTopologyNode) -> USBTopologyNode {
+            let deviceNodes = node.device.locationID.flatMap { nodesByLocation[$0] } ?? []
+            return USBTopologyNode(
+                device: node.device.withDeviceNodes(deviceNodes),
+                children: node.children.map(attach)
+            )
+        }
+
+        return topology.map(attach)
     }
 }
 
