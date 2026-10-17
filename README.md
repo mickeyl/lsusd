@@ -48,15 +48,12 @@ nodes, event history, and plain-text, CSV, and JSON export.
   <img src="docs/images/lsusd-menubar.png" alt="LSUSD for macOS menu-bar popover showing USB and serial devices with color-coded speed badges" width="390">
 </p>
 
-### What's new in macOS 2.1.2
+### What's new in macOS 2.1.3
 
-- Recognizes devices reconnected to the same port without leaving duplicate
-  removed and new entries in an open panel.
-- Keeps an open device list current when USB hardware is connected or removed.
-- Highlights newly connected devices and marks removed devices until the next
-  panel cycle or manual refresh.
-- Adds a dedicated macOS app icon for Spotlight, Finder, and other system
-  surfaces.
+- Shows available serial device nodes in the USB list, topology, inspector,
+  menu-bar panel, and exports, including multiple ports per device.
+- Copies individual serial port paths from a right-click menu.
+- Uses the CLI-compatible `device` export field in place of `location`.
 
 See the complete [changelog](CHANGELOG.md) for release history.
 

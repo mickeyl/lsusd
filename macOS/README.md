@@ -26,8 +26,8 @@ one action per path. Event history exports preserve the watch fields:
 CLI 2.1.2 also uses em dashes for missing values and automatic terminal colors.
 The native app uses em dashes in its SwiftUI interface and retains `?` in
 machine-readable exports. Terminal colors do not apply to the app. The current
-macOS app release remains
-2.1.2 (`macos-v2.1.2`), published separately from CLI tag `v2.1.2`.
+macOS app release is 2.1.3 (`macos-v2.1.3`), published separately from CLI
+releases.
 
 ## Architecture
 

@@ -2,6 +2,20 @@
 
 All notable user-facing changes to LSUSD are documented in this file.
 
+## [macOS 2.1.3] - 2026-10-17
+
+### Added
+
+- Show available serial device nodes in the USB device table, topology,
+  inspector, and menu-bar panel. Multi-port devices list every port.
+- Copy an individual serial port path from the right-click menu in the app.
+
+### Changed
+
+- Use the CLI-compatible `device` field instead of `location` in USB device
+  exports. Missing nodes remain `?` in data exports and display as an em dash
+  in the interface.
+
 ## [2.1.2] - 2026-10-17 (CLI)
 
 ### Changed
@@ -51,6 +65,7 @@ All notable user-facing changes to LSUSD are documented in this file.
   lists, topology, event history, settings, and export support.
 - Added color-coded USB speed badges and configurable device sorting.
 
+[macOS 2.1.3]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.2...macos-v2.1.3
 [2.1.2]: https://github.com/mickeyl/lsusd/compare/v2.1.1...v2.1.2
 [macOS 2.1.2]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.1...macos-v2.1.2
 [2.1.1]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.0...macos-v2.1.1
