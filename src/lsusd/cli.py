@@ -1,6 +1,7 @@
 """CLI entry point and table formatting."""
 
 import argparse
+import os
 import platform
 import sys
 from datetime import datetime
@@ -14,15 +15,50 @@ DEVICE_HEADERS = [
 ]
 DEVICE_FIELDS = ["device", "product", "vendor", "serial", "vidpid", "release"]
 ALL_DEVICE_HEADERS = [
-    "Bus", "Device", "Location ID", "USB Product", "USB Vendor", "USB Serial", "VID:PID", "Release", "Speed",
+    "Bus", "Device", "Device Node", "USB Product", "USB Vendor", "USB Serial", "VID:PID", "Release", "Speed",
 ]
 ALL_DEVICE_FIELDS = [
-    "bus", "address", "location", "product", "vendor", "serial", "vidpid", "release", "speed",
+    "bus", "address", "device", "product", "vendor", "serial", "vidpid", "release", "speed",
 ]
 
 
-def format_table(rows, headers):
+def _use_color():
+    """Enable styling only for a capable terminal that has not opted out."""
+    return (
+        sys.stdout.isatty()
+        and os.environ.get("TERM") != "dumb"
+        and "NO_COLOR" not in os.environ
+    )
+
+
+def _display_value(value):
+    """Use an em dash for unknown values in human-readable output."""
+    return "—" if value == "?" else value
+
+
+def _style(value, code, color):
+    return f"\033[{code}m{value}\033[0m" if color and code else value
+
+
+def _styled_value(value, column, color):
+    value = _display_value(value)
+    if value == "—":
+        code = "2"
+    elif column == "Speed":
+        # Distinguish SuperSpeed, high-speed, and full/low-speed USB links.
+        try:
+            speed = float(value[:-1]) * {"G": 1000, "M": 1, "K": 0.001}[value[-1]]
+            code = "35" if speed >= 1000 else "36" if speed >= 480 else "33"
+        except (ValueError, KeyError, IndexError):
+            code = ""
+    else:
+        code = {"Device Node": "32", "USB Product": "1", "VID:PID": "36"}.get(column, "")
+    return _style(value, code, color)
+
+
+def format_table(rows, headers, *, color=False):
     """Render rows as a Unicode box-drawing table."""
+    rows = [tuple(_display_value(cell) for cell in row) for row in rows]
     widths = [len(h) for h in headers]
     for row in rows:
         for i, cell in enumerate(row):
@@ -31,11 +67,15 @@ def format_table(rows, headers):
     def line(left, mid, right, fill="\u2500"):
         return left + mid.join(fill * (w + 2) for w in widths) + right
 
-    def data_row(cells):
-        return "\u2502" + "\u2502".join(f" {c:<{w}} " for c, w in zip(cells, widths)) + "\u2502"
+    def data_row(cells, heading=False):
+        padded = []
+        for cell, width, header in zip(cells, widths, headers):
+            styled = _style(cell, "1", color) if heading else _styled_value(cell, header, color)
+            padded.append(f" {styled}{' ' * (width - len(cell))} ")
+        return "\u2502" + "\u2502".join(padded) + "\u2502"
 
     lines = [line("\u250c", "\u252c", "\u2510")]
-    lines.append(data_row(h.center(w) for h, w in zip(headers, widths)))
+    lines.append(data_row((h.center(w) for h, w in zip(headers, widths)), heading=True))
     for row in rows:
         lines.append(line("\u251c", "\u253c", "\u2524"))
         lines.append(data_row(row))
@@ -51,26 +91,30 @@ def format_plain(devices, fields=DEVICE_FIELDS, separator="\t"):
     return "\n".join(lines)
 
 
-def _format_tree_label(device):
+def _format_tree_label(device, color=False):
     """Render one USB tree node."""
+    def value(field, column=""):
+        return _styled_value(device[field], column, color)
+
     parts = [
-        f"Bus {device['bus']}",
-        f"Dev {device['address']}",
-        f"ID {device['vidpid']}",
-        device["vendor"],
-        device["product"],
-        f"release={device['release']}",
-        f"speed={device['speed']}",
-        f"loc={device['location']}",
+        f"Bus {value('bus')}",
+        f"Dev {value('address')}",
+        f"ID {value('vidpid', 'VID:PID')}",
+        value("vendor"),
+        value("product", "USB Product"),
+        f"release={value('release')}",
+        f"speed={value('speed', 'Speed')}",
     ]
+    if device["device"] != "?":
+        parts.append(f"device={value('device', 'Device Node')}")
     if device["serial"] != "?":
-        parts.append(f"serial={device['serial']}")
+        parts.append(f"serial={value('serial')}")
     if device.get("hub"):
         parts.append("hub")
     return " ".join(parts)
 
 
-def format_tree(nodes):
+def format_tree(nodes, *, color=False):
     """Render USB devices as a Unicode tree."""
     lines = []
 
@@ -79,7 +123,7 @@ def format_tree(nodes):
             last = index == len(children) - 1
             connector = "\u2514\u2500 " if last else "\u251c\u2500 "
             child_prefix = "   " if last else "\u2502  "
-            lines.append(prefix + connector + _format_tree_label(node["device"]))
+            lines.append(prefix + connector + _format_tree_label(node["device"], color))
             walk(node["children"], prefix + child_prefix)
 
     walk(nodes)
@@ -94,16 +138,22 @@ def format_watch_plain(event, separator="\t"):
 def format_watch_line(event):
     """Render one watch event as a compact dmesg-like line."""
     timestamp = datetime.now().isoformat(timespec="seconds")
+    display = {field: _display_value(event[field]) for field in WATCH_HEADERS}
     return (
-        f"{timestamp} usb-serial {event['action']} {event['device']} "
-        f"product={event['product']!r} vendor={event['vendor']!r} "
-        f"serial={event['serial']!r} vidpid={event['vidpid']} release={event['release']}"
+        f"{timestamp} usb-serial {display['action']} {display['device']} "
+        f"product={display['product']!r} vendor={display['vendor']!r} "
+        f"serial={display['serial']!r} vidpid={display['vidpid']} release={display['release']}"
     )
 
 
-def _watch_event_summary(event):
+def _watch_event_summary(event, color=False):
     """Render a compact description of the last watch event."""
-    return f"{event['action']} {event['device']} ({event['product']}, {event['vidpid']})"
+    action_color = {"present": "36", "add": "32", "remove": "31"}.get(event["action"], "")
+    action = _style(event["action"], action_color, color)
+    device = _styled_value(event["device"], "Device Node", color)
+    product = _styled_value(event["product"], "USB Product", color)
+    vidpid = _styled_value(event["vidpid"], "VID:PID", color)
+    return f"{action} {device} ({product}, {vidpid})"
 
 
 def _event_device(event):
@@ -124,7 +174,7 @@ def _devices_by_node(devices):
     return {device["device"]: device for device in devices}
 
 
-def format_watch_screen(devices, last_event):
+def format_watch_screen(devices, last_event, *, color=False):
     """Render the interactive watch screen."""
     now = datetime.now().isoformat(timespec="seconds")
     rows = [
@@ -138,12 +188,12 @@ def format_watch_screen(devices, last_event):
         "",
     ]
     if rows:
-        lines.append(format_table(rows, DEVICE_HEADERS))
+        lines.append(format_table(rows, DEVICE_HEADERS, color=color))
     else:
         lines.append("No USB serial devices connected.")
 
     if last_event:
-        lines.extend(["", f"Last event: {_watch_event_summary(last_event)}"])
+        lines.extend(["", f"Last event: {_watch_event_summary(last_event, color)}"])
     return "\n".join(lines)
 
 
@@ -184,7 +234,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--serial", action="store_true",
-        help="show only USB serial devices",
+        help="show the original USB serial device view (kept for compatibility)",
     )
     parser.add_argument(
         "--hubs", action="store_true",
@@ -234,12 +284,13 @@ def print_devices(devices, args):
         print(format_plain(devices, fields))
     else:
         rows = [tuple(d[field] for field in fields) for d in devices]
-        print(format_table(rows, headers))
+        print(format_table(rows, headers, color=_use_color()))
 
 
 def watch_devices(watch_changes, args):
     """Stream USB serial add/remove events in the selected output format."""
     use_tui = not (args.json or args.csv or args.plain) and sys.stdout.isatty()
+    color = _use_color()
     csv_writer = None
     if args.csv:
         import csv
@@ -265,7 +316,7 @@ def watch_devices(watch_changes, args):
                     event = None
                 else:
                     _update_watch_devices(devices, event)
-                print("\033[H\033[2J" + format_watch_screen(devices, event), flush=True)
+                print("\033[H\033[2J" + format_watch_screen(devices, event, color=color), flush=True)
             else:
                 print(format_watch_line(event), flush=True)
 
@@ -313,7 +364,7 @@ def main(argv=None):
         sys.exit(0)
 
     if args.tree:
-        print(format_tree(devices))
+        print(format_tree(devices, color=_use_color()))
         return
 
     print_devices(devices, args)

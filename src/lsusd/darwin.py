@@ -81,18 +81,43 @@ def _is_usb_device(node):
     return "idVendor" in node and "idProduct" in node
 
 
-def _load_usb_tree():
-    """Load the IOUSB registry plane as a plist dictionary."""
+def _load_registry_tree(plane):
+    """Load an IORegistry plane, normalizing plist roots to one tree."""
     raw = subprocess.run(
-        ["ioreg", "-p", "IOUSB", "-l", "-w0", "-a"],
+        ["ioreg", "-p", plane, "-l", "-w0", "-a"],
         capture_output=True,
     ).stdout
     if not raw:
         return {}
     try:
-        return plistlib.loads(raw)
+        tree = plistlib.loads(raw)
+        if isinstance(tree, list):
+            return {"IORegistryEntryChildren": tree}
+        return tree
     except plistlib.InvalidFileException:
         return {}
+
+
+def _load_usb_tree():
+    """Load the IOUSB registry plane as a plist dictionary."""
+    return _load_registry_tree("IOUSB")
+
+
+def _serial_nodes_by_location():
+    """Map callout nodes to their nearest physical USB ancestor in IOService."""
+    nodes = {}
+
+    def walk(node, location=None):
+        if _is_usb_device(node) and "bInterfaceNumber" not in node:
+            location = _location(node.get("locationID"))
+        device = node.get("IOCalloutDevice")
+        if location not in (None, "?") and device:
+            nodes.setdefault(location, set()).add(device)
+        for child in _children(node):
+            walk(child, location)
+
+    walk(_load_registry_tree("IOService"))
+    return {location: sorted(devices) for location, devices in nodes.items()}
 
 
 def _walk(node):
@@ -102,7 +127,7 @@ def _walk(node):
         yield from _walk(child)
 
 
-def _usb_device_row(node):
+def _usb_device_row(node, serial_nodes=None):
     """Convert an IOUSB device node to a display row."""
     vid = _hex_id(node.get("idVendor"))
     pid = _hex_id(node.get("idProduct"))
@@ -127,7 +152,7 @@ def _usb_device_row(node):
     address = _address(node.get("USB Address"))
 
     return {
-        "device": f"/dev/bus/usb/{bus}/{address}",
+        "device": ", ".join((serial_nodes or {}).get(location, [])) or "?",
         "bus": bus,
         "address": address,
         "location": location,
@@ -214,11 +239,12 @@ def discover():
 def discover_all(include_hubs=False):
     """Discover all USB devices via the IOUSB registry plane on macOS."""
     tree = _load_usb_tree()
+    serial_nodes = _serial_nodes_by_location()
     devices = []
     for node in _walk(tree):
         if not _is_usb_device(node):
             continue
-        device = _usb_device_row(node)
+        device = _usb_device_row(node, serial_nodes)
         if device["hub"] and not include_hubs:
             continue
         devices.append(device)
@@ -226,16 +252,16 @@ def discover_all(include_hubs=False):
     return sorted(devices, key=lambda d: (d["location"], d["address"], d["vidpid"]))
 
 
-def _usb_tree_nodes(node, include_hubs):
+def _usb_tree_nodes(node, include_hubs, serial_nodes):
     """Return visible USB device tree nodes below an IORegistry node."""
     children = []
     for child in _children(node):
-        children.extend(_usb_tree_nodes(child, include_hubs))
+        children.extend(_usb_tree_nodes(child, include_hubs, serial_nodes))
 
     if not _is_usb_device(node):
         return children
 
-    device = _usb_device_row(node)
+    device = _usb_device_row(node, serial_nodes)
     if device["hub"] and not include_hubs:
         return children
 
@@ -244,7 +270,7 @@ def _usb_tree_nodes(node, include_hubs):
 
 def discover_tree(include_hubs=False):
     """Discover all USB devices as a visible hierarchy on macOS."""
-    return _usb_tree_nodes(_load_usb_tree(), include_hubs)
+    return _usb_tree_nodes(_load_usb_tree(), include_hubs, _serial_nodes_by_location())
 
 
 def _devices_by_node(devices):
@@ -270,10 +296,6 @@ class _IOKitWatcher:
     _IO_OBJECT_NULL = 0
     _K_IO_FIRST_MATCH = b"IOServiceFirstMatch"
     _K_IO_TERMINATED = b"IOServiceTerminate"
-    _K_CF_RUN_LOOP_DEFAULT_MODE = ctypes.c_void_p.in_dll(
-        ctypes.CDLL("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"),
-        "kCFRunLoopDefaultMode",
-    )
 
     def __init__(self, on_change):
         self._on_change = on_change
@@ -289,6 +311,9 @@ class _IOKitWatcher:
         self._iokit = ctypes.CDLL("/System/Library/Frameworks/IOKit.framework/IOKit")
         self._corefoundation = ctypes.CDLL(
             "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+        )
+        self._K_CF_RUN_LOOP_DEFAULT_MODE = ctypes.c_void_p.in_dll(
+            self._corefoundation, "kCFRunLoopDefaultMode",
         )
         self._configure_functions()
 

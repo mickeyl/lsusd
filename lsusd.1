@@ -1,4 +1,4 @@
-.TH LSUSD 1 "2026-08-21" "lsusd 2.1.1" "User Commands"
+.TH LSUSD 1 "2026-10-17" "lsusd 2.1.2" "User Commands"
 .SH NAME
 lsusd \- list USB devices with their associated USB metadata
 .SH SYNOPSIS
@@ -16,7 +16,8 @@ lsusd \- list USB devices with their associated USB metadata
 .SH DESCRIPTION
 .B lsusd
 discovers USB devices and displays their associated USB metadata
-(bus, address, vendor, product, serial number, VID:PID, device release, speed)
+(bus, address, serial device nodes, vendor, product, serial number, VID:PID,
+device release, speed)
 in a formatted table. It is intended as a zero-dependency
 .BR lsusb (8)
 successor for macOS and Linux.
@@ -25,7 +26,18 @@ By default,
 .B lsusd
 lists all non-hub USB devices. USB hubs are hidden unless
 .BR \-\-hubs
-is supplied.
+is supplied. Available serial ports appear in the Device Node column.
+Multiple ports on one USB device are joined with a comma and space; devices
+without a serial port show an em dash. The Location ID column is omitted.
+.PP
+Human-readable output uses an em dash for unknown values, including USB
+serial numbers. Plain, CSV, and JSON retain question marks for compatibility.
+Tables, trees, and live watch screens use color when standard output is an
+interactive terminal. Device nodes are green, VID:PID values cyan, and product
+names bold. Link speeds are magenta for SuperSpeed (1G and above), cyan for
+high speed (480M and above), and yellow for slower links. Unknown values are
+dimmed. Set NO_COLOR or TERM=dumb to disable styling. Redirected output and
+data formats never contain color codes.
 .PP
 On macOS, USB device discovery is performed via the
 .I IOUSB
@@ -35,7 +47,8 @@ avoiding the stale
 .I SPUSBDataType
 system_profiler data type used by older macOS
 .B lsusb
-wrappers.
+wrappers. Serial ports are associated with their physical USB ancestor via
+the IOService registry plane.
 .PP
 On Linux, USB device discovery is performed via
 .I /sys/bus/usb/devices .
@@ -65,7 +78,8 @@ or
 With
 .BR \-\-serial ,
 .B lsusd
-shows only USB serial device nodes and their USB metadata.
+preserves the original view of USB serial device nodes and their USB metadata
+for compatibility.
 .PP
 With
 .BR \-t " / " \-\-tree ,
@@ -96,8 +110,10 @@ Disable the progress spinner shown during device discovery.
 .BR \-a ", " \-\-all
 Show all non-hub USB devices. This is the default mode; the flag is kept for
 compatibility and explicitness.
-The columns are: bus, address, location, product, vendor, serial, vidpid,
-release, speed.
+The columns are: bus, address, device, product, vendor, serial, vidpid,
+release, speed. Since CLI 2.1.2, device replaces location in plain, CSV,
+and JSON output as well as in the table. Scripts using the old location field
+must use the device field for serial port paths instead.
 .PP
 The release field is the BCD-coded
 .I bcdDevice
@@ -106,10 +122,10 @@ for the firmware release, but USB defines it more generally as a
 manufacturer-assigned device release number. It uses the conventional USB
 two-group notation; for example, 0x0100 is displayed as 1.00. No
 major/minor/patch interpretation is inferred. A missing value is displayed as
-.IR ? .
+an em dash in human-readable output, or a question mark in plain, CSV, and JSON.
 .TP
 .B \-\-serial
-Show only USB serial device nodes.
+Show the original USB serial device view, kept for compatibility.
 The columns are: device, product, vendor, serial, vidpid, release.
 .TP
 .B \-\-hubs
@@ -120,7 +136,7 @@ and
 output.
 .TP
 .BR \-t ", " \-\-tree
-Show USB devices as a tree.
+Show USB devices as a tree, including available serial ports.
 .TP
 .BR \-w ", " \-\-watch
 Show current USB serial devices in a live table, then watch changes until

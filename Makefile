@@ -21,7 +21,7 @@ help:
 	@echo "Targets:"
 	@echo "  make install    Install this project editable into the active Python environment"
 	@echo "  make uninstall  Uninstall the package from the active Python environment"
-	@echo "  make check      Compile sources and show CLI help"
+	@echo "  make check      Compile sources, run unit tests, and show CLI help"
 	@echo "  make run        Run lsusd from the source tree"
 	@echo "  make watch      Run lsusd --watch from the source tree"
 	@echo "  make mac-generate  Generate the macOS Xcode project"

@@ -8,11 +8,18 @@ This repository contains two related products:
 
 The CLI provides these discovery and output contracts:
 
-- Default command lists all non-hub USB devices.
+- Default command lists all non-hub USB devices, including available serial
+  device nodes in the `device` field (`?` if absent; multiple ports joined by
+  `, `). Location IDs remain internal and are omitted from CLI output.
 - `--hubs` includes USB hubs in device and tree output.
 - `--tree` renders the USB device hierarchy.
-- `--serial` preserves the original USB serial device-node view.
+- `--serial` preserves the original USB serial device-node view for compatibility.
 - `--watch` is still USB-serial-specific.
+- Human-readable output renders unknown values as `—`, including USB serial
+  numbers. Plain, CSV, and JSON retain `?` for compatibility.
+- Tables, trees, and live watch screens use ANSI styling only when stdout is
+  a TTY, `TERM` is not `dumb`, and `NO_COLOR` is unset. Apply styling after
+  computing column widths; data formats never contain ANSI codes.
 
 ## Native macOS App
 
@@ -54,11 +61,13 @@ the sources, runs the unit tests, and checks the CLI entry point.
 
 ## Releasing the CLI
 
-1. Bump `version` in `pyproject.toml`
-2. Commit and push
+1. Bump `version` in `pyproject.toml` and `__version__` in
+   `src/lsusd/__init__.py`; update the man-page version/date, README, and changelog.
+2. Run `make check`, build with `python3 -m build`, and validate both artifacts
+   with `python3 -m twine check dist/lsusd-<version>*`. Commit and push.
 3. Create a GitHub release: `gh release create v<version> --title "v<version>" --notes "<summary>"`
-4. Build and publish to PyPI: `python3 -m build && python3 -m twine upload dist/lsusd-<version>*`
-5. Update Homebrew formula in `~/Documents/late/homebrew-formulae/Formula/lsusd.rb`:
+4. Publish the validated artifacts to PyPI: `python3 -m twine upload dist/lsusd-<version>*`
+5. Update Homebrew formula in `../homebrew-formulae/Formula/lsusd.rb`:
    - Update `url` tag to `v<version>`
    - Update `version`
    - Update `sha256` (get via `curl -sL https://github.com/mickeyl/lsusd/archive/refs/tags/v<version>.tar.gz | shasum -a 256`)

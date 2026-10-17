@@ -9,13 +9,22 @@ LSUSD for macOS is a native menu-bar companion to the cross-platform `lsusd` CLI
 | Default device list | Devices table and menu-bar summary |
 | `--hubs` | Show USB hubs toggle |
 | `--tree` | Expandable Topology view |
-| `--serial` | Serial table with device nodes |
+| `--serial` (compatibility) | Serial table with device nodes |
 | `--watch` | Push-driven Serial event history |
 | `--json` | Copy or export JSON |
 | `--csv` | Copy or export CSV |
 | `--plain` | Copy or export tab-separated text |
 
-All device exports preserve the CLI field names and USB value formatting. Event history exports preserve the watch fields: `action`, `device`, `product`, `vendor`, `serial`, `vidpid`, and `release`.
+Device exports use the USB value formatting shared with the CLI. Since CLI
+2.1.2, the CLI's default output includes serial device nodes in place of
+location IDs; the app's device exports retain their existing location field. Event history
+exports preserve the watch fields: `action`, `device`, `product`, `vendor`,
+`serial`, `vidpid`, and `release`.
+
+CLI 2.1.2 also uses em dashes for missing values and automatic terminal colors.
+These are CLI presentation changes; the native app uses its own SwiftUI
+presentation and export formatting. The current macOS app release remains
+2.1.2 (`macos-v2.1.2`), published separately from CLI tag `v2.1.2`.
 
 ## Architecture
 

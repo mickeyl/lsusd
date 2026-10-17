@@ -24,12 +24,11 @@ def _find_usb_ancestor(device_path):
     return None
 
 
-def discover():
-    """Discover USB serial devices via sysfs on Linux."""
-    devices = []
+def _serial_device_paths():
+    """Yield serial device nodes and their physical USB ancestor directories."""
     tty_class = Path("/sys/class/tty")
     if not tty_class.is_dir():
-        return devices
+        return
 
     for entry in sorted(tty_class.iterdir()):
         device_link = entry / "device"
@@ -37,9 +36,22 @@ def discover():
             continue
 
         usb_dir = _find_usb_ancestor(device_link)
-        if not usb_dir:
-            continue
+        if usb_dir:
+            yield f"/dev/{entry.name}", usb_dir
 
+
+def _serial_nodes_by_usb_device():
+    """Group serial nodes by physical USB device, including multi-port devices."""
+    nodes = {}
+    for device, usb_dir in _serial_device_paths():
+        nodes.setdefault(usb_dir, []).append(device)
+    return nodes
+
+
+def discover():
+    """Discover USB serial devices via sysfs on Linux."""
+    devices = []
+    for device, usb_dir in _serial_device_paths():
         vid = _read_sysfs(usb_dir / "idVendor") or "0000"
         pid = _read_sysfs(usb_dir / "idProduct") or "0000"
         product = _read_sysfs(usb_dir / "product")
@@ -57,7 +69,7 @@ def discover():
         vendor = vendor or "?"
 
         devices.append({
-            "device": f"/dev/{entry.name}",
+            "device": device,
             "product": product,
             "vendor": vendor,
             "serial": serial,
@@ -89,7 +101,7 @@ def _is_hub(usb_dir):
     return (_read_sysfs(usb_dir / "bDeviceClass") or "").lower() == "09"
 
 
-def _usb_device_row(usb_dir):
+def _usb_device_row(usb_dir, serial_nodes=None):
     """Convert a sysfs USB device directory to a display row."""
     vid = (_read_sysfs(usb_dir / "idVendor") or "0000").upper()
     pid = (_read_sysfs(usb_dir / "idProduct") or "0000").upper()
@@ -108,7 +120,7 @@ def _usb_device_row(usb_dir):
     address = _format_bus(_read_sysfs(usb_dir / "devnum"))
 
     return {
-        "device": f"/dev/bus/usb/{bus}/{address}",
+        "device": ", ".join((serial_nodes or {}).get(usb_dir.resolve(), [])) or "?",
         "bus": bus,
         "address": address,
         "location": _read_sysfs(usb_dir / "devpath") or usb_dir.name,
@@ -129,10 +141,11 @@ def discover_all(include_hubs=False):
     if not usb_bus.is_dir():
         return devices
 
+    serial_nodes = _serial_nodes_by_usb_device()
     for usb_dir in sorted(usb_bus.iterdir()):
         if not (usb_dir / "idVendor").is_file() or not (usb_dir / "idProduct").is_file():
             continue
-        device = _usb_device_row(usb_dir)
+        device = _usb_device_row(usb_dir, serial_nodes)
         if device["hub"] and not include_hubs:
             continue
         devices.append(device)
@@ -175,10 +188,11 @@ def discover_tree(include_hubs=False):
     children_by_parent = {}
     roots = []
 
+    serial_nodes = _serial_nodes_by_usb_device()
     for usb_dir in sorted(usb_bus.iterdir()):
         if not (usb_dir / "idVendor").is_file() or not (usb_dir / "idProduct").is_file():
             continue
-        rows_by_name[usb_dir.name] = _usb_device_row(usb_dir)
+        rows_by_name[usb_dir.name] = _usb_device_row(usb_dir, serial_nodes)
 
     for name in rows_by_name:
         parent = _usb_parent_name(name)

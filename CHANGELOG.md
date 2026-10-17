@@ -2,7 +2,24 @@
 
 All notable user-facing changes to LSUSD are documented in this file.
 
-## [2.1.2] - 2026-08-28
+## [2.1.2] - 2026-10-17 (CLI)
+
+### Changed
+
+- Use an em dash for missing values in human-readable CLI output, including
+  USB serial numbers. Data formats retain their existing question marks.
+- Add automatic terminal colors for device nodes, USB IDs, speed tiers, and
+  watch events. Respect `NO_COLOR` and `TERM=dumb`; keep redirected output
+  and data formats free of color codes.
+- Show available serial device nodes in the default CLI table, plain, CSV,
+  JSON, and tree output. Multiple ports on one USB device are listed together.
+- Replace the CLI Location ID column (`location`) with Device Node (`device`).
+  Location information remains internal for ordering and physical port matching.
+  Scripts that read the previous `location` field or third plain-text column
+  must account for the new serial device node value (`?` when absent).
+- Keep `--serial` as a compatibility option for the original per-port view.
+
+## [macOS 2.1.2] - 2026-08-28
 
 ### Fixed
 
@@ -34,6 +51,7 @@ All notable user-facing changes to LSUSD are documented in this file.
   lists, topology, event history, settings, and export support.
 - Added color-coded USB speed badges and configurable device sorting.
 
-[2.1.2]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.1...macos-v2.1.2
+[2.1.2]: https://github.com/mickeyl/lsusd/compare/v2.1.1...v2.1.2
+[macOS 2.1.2]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.1...macos-v2.1.2
 [2.1.1]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.0...macos-v2.1.1
 [2.1.0]: https://github.com/mickeyl/lsusd/releases/tag/macos-v2.1.0
