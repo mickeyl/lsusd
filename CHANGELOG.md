@@ -2,6 +2,11 @@
 
 All notable user-facing changes to LSUSD are documented in this file.
 
+## [2.1.3] - 2026-10-17 (CLI)
+
+- Keep the CLI version aligned with the macOS 2.1.3 release. CLI behavior is
+  unchanged from 2.1.2.
+
 ## [macOS 2.1.3] - 2026-10-17
 
 ### Added
@@ -65,6 +70,7 @@ All notable user-facing changes to LSUSD are documented in this file.
   lists, topology, event history, settings, and export support.
 - Added color-coded USB speed badges and configurable device sorting.
 
+[2.1.3]: https://github.com/mickeyl/lsusd/compare/v2.1.2...v2.1.3
 [macOS 2.1.3]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.2...macos-v2.1.3
 [2.1.2]: https://github.com/mickeyl/lsusd/compare/v2.1.1...v2.1.2
 [macOS 2.1.2]: https://github.com/mickeyl/lsusd/compare/macos-v2.1.1...macos-v2.1.2

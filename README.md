@@ -18,7 +18,10 @@ connected; the USB data is available through `ioreg` and `SPUSBHostDataType`
 instead. `lsusd` uses the IOKit registry directly, so it does not depend on
 that stale `system_profiler` data type.
 
-## What's new in CLI 2.1.2
+## What's new in CLI 2.1.3
+
+CLI behavior is unchanged from 2.1.2. The version aligns with the macOS app
+release. CLI 2.1.2 introduced the following changes:
 
 - Shows available serial ports directly in the default USB device list and tree,
   including multiple ports belonging to one device.
